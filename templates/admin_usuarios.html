@@ -1,27 +1,70 @@
-{% extends 'layout.html' %}
-
-{% block title %}Administrar Usuarios{% endblock %}
+{% extends "layout.html" %}
 
 {% block content %}
-    <h1>👥 Administrar Usuarios</h1>
-    <a href="{{ url_for('admin_agregar_equipo') }}" class="btn btn-add">Crear Nuevo Usuario</a>
-    
-    <table class="table-users">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre de Usuario</th>
-                <th>Rol</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for usuario in usuarios %}
-            <tr>
-                <td>{{ usuario.id }}</td>
-                <td>{{ usuario.username }}</td>
-                <td>{{ usuario.role }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <div class="row align-items-center">
+            <div class="col-6">
+                <h4 class="mb-0 text-dark"><i class="fas fa-users-cog"></i> Gestión de Usuarios</h4>
+            </div>
+            <div class="col-6 text-end">
+                <a href="{{ url_for('admin_crear_usuario') }}" class="btn btn-success">
+                    <i class="fas fa-user-plus"></i> Nuevo Usuario
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="ps-3">ID</th>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th class="text-end pe-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td class="ps-3 fw-bold">{{ usuario.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-secondary text-white me-2">
+                                    {{ usuario.username[0].upper() }}
+                                </div>
+                                {{ usuario.username }}
+                            </div>
+                        </td>
+                        <td>{{ usuario.email or 'No registrado' }}</td>
+                        <td>
+                            {% if usuario.role == 'admin' %}
+                                <span class="badge bg-danger">Administrador</span>
+                            {% elif usuario.role == 'tecnico' %}
+                                <span class="badge bg-info text-dark">Técnico</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Usuario</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                            <a href="{{ url_for('admin_editar_usuario', user_id=usuario.id) }}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            
+                            <form action="{{ url_for('admin_eliminar_usuario', user_id=usuario.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar a {{ usuario.username }}? Esta acción es irreversible.');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="fas fa-user-edit"></i> Editar Usuario: {{ usuario.username }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de Usuario</label>
+                        <input type="text" class="form-control" value="{{ usuario.username }}" disabled>
+                        <div class="form-text">El nombre de usuario no se puede cambiar.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Correo Electrónico</label>
+                        <input type="email" name="email" class="form-control" value="{{ usuario.email or '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Rol del Sistema</label>
+                        <select name="role" class="form-select">
+                            <option value="user" {% if usuario.role == 'user' %}selected{% endif %}>Usuario</option>
+                            <option value="tecnico" {% if usuario.role == 'tecnico' %}selected{% endif %}>Técnico</option>
+                            <option value="admin" {% if usuario.role == 'admin' %}selected{% endif %}>Administrador</option>
+                        </select>
+                    </div>
+
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cambiar Contraseña (Opcional)</label>
+                        <input type="password" name="password" class="form-control" placeholder="Dejar en blanco para mantener la actual">
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Actualizar Usuario</button>
+                        <a href="{{ url_for('admin_usuarios') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

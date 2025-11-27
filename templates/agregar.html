@@ -1,57 +1,54 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Agregar Nuevo Soporte</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+{% extends "layout.html" %}
 
-    {% extends 'layout.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-plus-circle"></i> Nuevo Ticket de Soporte</h4>
+            </div>
+            <div class="card-body p-4">
+                
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="fas fa-user-circle fa-2x me-3"></i>
+                    <div>
+                        Reportando como: <strong>{{ session['username'] }}</strong>
+                    </div>
+                </div>
 
-    {% block title %}Registrar Nuevo Soporte{% endblock %}
+                <form method="POST" action="{{ url_for('agregar') }}">
+                    
+                    <div class="mb-3">
+                        <label for="categoria" class="form-label">Categoría del Problema</label>
+                        <select class="form-select" id="categoria" name="categoria" required>
+                            {% for cat in categorias %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-    {% block content %}
-    <div class="form-container">
-        <h2>➕ Registrar Nuevo Soporte</h2>
-        <form method="post">
-            <div class="form-group">
-                <label for="usuario">Nombre del Usuario:</label>
-                <input type="text" id="usuario" name="usuario" required>
+                    <div class="mb-3">
+                        <label for="prioridad" class="form-label">Prioridad Solicitada</label>
+                        <select class="form-select" id="prioridad" name="prioridad" required>
+                            {% for prio in prioridades %}
+                            <option value="{{ prio }}" {% if prio == 'Media' %}selected{% endif %}>{{ prio }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Usa 'Urgente' solo si el problema detiene completamente tu trabajo.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="problema" class="form-label">Descripción del Problema</label>
+                        <textarea class="form-control" id="problema" name="problema" rows="4" placeholder="Describe qué sucede, mensajes de error, etc..." required></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('lista_soportes') }}" class="btn btn-outline-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4">Crear Ticket</button>
+                    </div>
+                </form>
             </div>
-            <div class="form-group">
-                <label for="email_cliente">Email del Usuario (para notificaciones):</label>
-                <input type="email" id="email_cliente" name="email_cliente" required placeholder="ej: cliente@email.com">
-            </div>
-            <div class="form-group">
-                <label for="departamento">Departamento:</label>
-                <input type="text" id="departamento" name="departamento">
-            </div>
-            <div class="form-group">
-                <label for="problema">Descripción del Problema:</label>
-                <input type="text" id="problema" name="problema" required>
-            </div>
-            <div class="form-group">
-                <label for="categoria">Categoría:</label>
-                <select id="categoria" name="categoria">
-                    {% for cat in categorias %}
-                    <option value="{{ cat }}">{{ cat }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="prioridad">Prioridad:</label>
-                <select id="prioridad" name="prioridad">
-                    {% for pri in prioridades %}
-                    <option value="{{ pri }}">{{ pri }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Guardar Soporte</button>
-        </form>
-        <a href="{{ url_for('lista_soportes') }}" style="display: block; text-align: center; margin-top: 1em;">Cancelar y volver a la lista</a>
+        </div>
     </div>
-    {% endblock %}
-
-</body>
-</html>
+</div>
+{% endblock %}

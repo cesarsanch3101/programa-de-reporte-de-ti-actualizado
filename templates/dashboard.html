@@ -1,84 +1,89 @@
-{% extends 'layout.html' %}
-
-{% block title %}Dashboard - Sistema de Soportes{% endblock %}
+{% extends "layout.html" %}
 
 {% block content %}
-    <div class="dashboard-header">
-        <h1>📊 Dashboard de Soportes</h1>
-        <div class="dashboard-actions">
-            <a href="{{ url_for('lista_soportes') }}" class="btn btn-primary">Ver Soportes</a>
-            <a href="{{ url_for('agregar') }}" class="btn btn-success">Crear Nuevo Soporte</a>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">📊 Panel de Control</h1>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-danger h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">Tickets Abiertos</h6>
+                        <h2 class="display-4 fw-bold my-2">{{ data.total_abiertos }}</h2>
+                    </div>
+                    <i class="fas fa-exclamation-circle fa-4x opacity-50"></i>
+                </div>
+                <p class="card-text small">Requieren atención inmediata</p>
+            </div>
         </div>
     </div>
 
-    <div class="stats-cards">
-        <div class="card">
-            <div class="number">{{ data.total_abiertos or 0 }}</div>
-            <div class="label">Tickets Abiertos</div>
-        </div>
-        <div class="card">
-            <div class="number">{{ data.total_en_proceso or 0 }}</div>
-            <div class="label">Tickets En Proceso</div>
-        </div>
-    </div>
-
-    <div class="charts-section">
-        <div class="chart-wrapper">
-            <h3>Soportes por Estado</h3>
-            <canvas id="statusChart"></canvas>
-        </div>
-        <div class="chart-wrapper">
-            <h3>Soportes por Categoría</h3>
-            <canvas id="categoryChart"></canvas>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning text-dark h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">En Proceso</h6>
+                        <h2 class="display-4 fw-bold my-2">{{ data.total_en_proceso }}</h2>
+                    </div>
+                    <i class="fas fa-tools fa-4x opacity-50"></i>
+                </div>
+                <p class="card-text small">Están siendo atendidos</p>
+            </div>
         </div>
     </div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const statusLabels = {{ data.labels_estados|tojson or [] }};
-        const statusValues = {{ data.valores_estados|tojson or [] }};
-        const categoryLabels = {{ data.labels_categorias|tojson or [] }};
-        const categoryValues = {{ data.valores_categorias|tojson or [] }};
+    <div class="col-md-4">
+        <div class="card text-white bg-primary h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">Mis Tickets</h6>
+                        <h2 class="display-4 fw-bold my-2">{{ data.mis_tickets }}</h2>
+                    </div>
+                    <i class="fas fa-user-tag fa-4x opacity-50"></i>
+                </div>
+                <p class="card-text small">Creados por mí</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-        const ctxStatus = document.getElementById('statusChart');
-        if (ctxStatus && statusValues && statusValues.length > 0) {
-            new Chart(ctxStatus.getContext('2d'), {
-                type: 'pie',
-                data: {
-                    labels: statusLabels,
-                    datasets: [{
-                        label: 'Soportes',
-                        data: statusValues,
-                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
-                        hoverOffset: 4
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-
-        const ctxCategory = document.getElementById('categoryChart');
-        if (ctxCategory && categoryValues && categoryValues.length > 0) {
-            new Chart(ctxCategory.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: categoryLabels,
-                    datasets: [{
-                        label: 'Cantidad de Soportes',
-                        data: categoryValues,
-                        backgroundColor: '#36A2EB'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-    });
-</script>
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Resumen de Actividad</h5>
+            </div>
+            <div class="card-body text-center py-5 text-muted">
+                <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                <p>Aquí cargaremos los gráficos de Chart.js en la próxima fase.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Acciones Rápidas</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('agregar') }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-plus text-primary me-2"></i> Crear Nuevo Ticket
+                </a>
+                <a href="{{ url_for('lista_soportes') }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-list text-secondary me-2"></i> Ver Todos los Tickets
+                </a>
+                {% if session['role'] == 'admin' %}
+                <a href="{{ url_for('admin_usuarios') }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-users-cog text-dark me-2"></i> Gestionar Usuarios
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

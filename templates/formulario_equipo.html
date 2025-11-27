@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0">
+                    {% if equipo %}Editar Equipo{% else %}Registrar Nuevo Equipo{% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    
+                    <h5 class="text-primary border-bottom pb-2 mb-3">Información General</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nombre del Equipo (Hostname)</label>
+                            <input type="text" name="nombre_equipo" class="form-control" value="{{ equipo.nombre_equipo if equipo else '' }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo</label>
+                            <select name="tipo" class="form-select">
+                                <option value="Laptop" {% if equipo and equipo.tipo == 'Laptop' %}selected{% endif %}>Laptop</option>
+                                <option value="Desktop" {% if equipo and equipo.tipo == 'Desktop' %}selected{% endif %}>Escritorio</option>
+                                <option value="Servidor" {% if equipo and equipo.tipo == 'Servidor' %}selected{% endif %}>Servidor</option>
+                                <option value="Impresora" {% if equipo and equipo.tipo == 'Impresora' %}selected{% endif %}>Impresora</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha de Compra</label>
+                            <input type="date" name="fecha_compra" class="form-control" value="{{ equipo.fecha_compra if equipo else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Marca y Modelo</label>
+                            <input type="text" name="marca_modelo" class="form-control" value="{{ equipo.marca_modelo if equipo else '' }}" placeholder="Ej: HP ProBook 450 G8">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Número de Serie</label>
+                            <input type="text" name="numero_serie" class="form-control" value="{{ equipo.numero_serie if equipo else '' }}">
+                        </div>
+                    </div>
+
+                    <h5 class="text-primary border-bottom pb-2 mb-3 mt-4">Especificaciones de Hardware</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Procesador (CPU)</label>
+                            <input type="text" name="procesador" class="form-control" value="{{ equipo.procesador if equipo else '' }}" placeholder="Ej: Intel Core i7-1165G7 @ 2.80GHz">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Memoria RAM</label>
+                            <input type="text" name="memoria_ram" class="form-control" value="{{ equipo.memoria_ram if equipo else '' }}" placeholder="Ej: 16 GB">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo DDR</label>
+                            <select name="tipo_ram" class="form-select">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="DDR5" {% if equipo and equipo.tipo_ram == 'DDR5' %}selected{% endif %}>DDR5</option>
+                                <option value="DDR4" {% if equipo and equipo.tipo_ram == 'DDR4' %}selected{% endif %}>DDR4</option>
+                                <option value="DDR3" {% if equipo and equipo.tipo_ram == 'DDR3' %}selected{% endif %}>DDR3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Almacenamiento</label>
+                            <input type="text" name="disco_duro" class="form-control" value="{{ equipo.disco_duro if equipo else '' }}" placeholder="Ej: 512 GB">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo Disco</label>
+                            <select name="tipo_disco" class="form-select">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="SSD NVMe" {% if equipo and equipo.tipo_disco == 'SSD NVMe' %}selected{% endif %}>SSD NVMe</option>
+                                <option value="SSD SATA" {% if equipo and equipo.tipo_disco == 'SSD SATA' %}selected{% endif %}>SSD SATA</option>
+                                <option value="HDD" {% if equipo and equipo.tipo_disco == 'HDD' %}selected{% endif %}>HDD (Mecánico)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h5 class="text-primary border-bottom pb-2 mb-3 mt-4">Asignación</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Usuario Asignado</label>
+                        <select name="usuario_asignado_id" class="form-select">
+                            <option value="">-- Mantener en Stock (Sin Asignar) --</option>
+                            {% for usuario in usuarios %}
+                            <option value="{{ usuario.id }}" {% if equipo and equipo.usuario_asignado_id == usuario.id %}selected{% endif %}>
+                                {{ usuario.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('lista_equipos') }}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Guardar Ficha Técnica</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

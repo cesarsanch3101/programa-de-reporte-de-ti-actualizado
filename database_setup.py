@@ -1,93 +1,122 @@
-# database_setup.py (Versión Completa y Corregida)
-
 import sqlite3
-from config import DB_FILE
+import os
+from werkzeug.security import generate_password_hash
+from config import Config
+
+def get_db_connection():
+    conn = sqlite3.connect(Config.DB_FILE)
+    conn.row_factory = sqlite3.Row
+    # Activar Foreign Keys (SQLite lo tiene desactivado por defecto)
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
 
 def crear_tablas():
-    """
-    Crea/actualiza las tablas del proyecto de forma segura.
-    - Añade la columna 'email_cliente' a 'soportes' si no existe.
-    - Crea las tablas 'equipos' y 'mantenimientos' para el cronograma.
-    - Crea la tabla 'configuracion' para los ajustes.
-    """
-    conn = None  # Inicializamos la conexión como None
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        print(f"Conectado a la base de datos: {DB_FILE}")
-        print("Creando/Verificando tablas...")
-
-        # --- Tabla Soportes (Añadimos la columna de email si no existe) ---
-        try:
-            cursor.execute("ALTER TABLE soportes ADD COLUMN email_cliente TEXT")
-            print("Columna 'email_cliente' añadida a la tabla 'soportes'.")
-        except sqlite3.OperationalError:
-            pass # La columna ya existe, no hacemos nada.
-        
-        # Verificamos la tabla principal de soportes
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS soportes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, fecha_hora TEXT, usuario TEXT, departamento TEXT, 
-            problema TEXT, estado TEXT, tecnico TEXT, solucion TEXT, prioridad TEXT, 
-            categoria TEXT, fecha_inicio TEXT, fecha_finalizacion TEXT, comentarios_solucion TEXT,
-            email_cliente TEXT 
-        )""")
+    print(f"--- 🛠️ Iniciando configuración de Base de Datos: {Config.DB_FILE} ---")
     
-        # Tabla Usuarios
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 1. Tabla de USUARIOS (Añadimos email y departamento para normalizar)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('admin', 'user'))
-        )""")
-    
-        # Tabla Configuración
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS configuracion (
-            clave TEXT PRIMARY KEY, valor TEXT
-        )""")
-        
-        # --- NUEVA TABLA para el inventario de equipos ---
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin', 'user', 'tecnico')),
+            departamento TEXT,
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # 2. Tabla de EQUIPOS (Inventario)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS equipos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_asignado TEXT,
             nombre_equipo TEXT UNIQUE NOT NULL,
             tipo TEXT,
             marca_modelo TEXT,
-            numero_serie TEXT,
-            fecha_adquisicion TEXT,
-            notas TEXT
-        )""")
+            numero_serie TEXT UNIQUE,
+            fecha_adquisicion DATE,
+            usuario_asignado_id INTEGER,
+            notas TEXT,
+            FOREIGN KEY (usuario_asignado_id) REFERENCES usuarios (id) ON DELETE SET NULL
+        )
+        """)
 
-        # --- NUEVA TABLA para el cronograma de mantenimientos ---
+        # 3. Tabla de SOPORTES (Tickets) - La Joya de la Corona
+        # Usamos IDs para vincular usuario y técnico.
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS soportes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            
+            usuario_id INTEGER NOT NULL,  -- Quién reporta
+            tecnico_id INTEGER,           -- Quién atiende
+            equipo_id INTEGER,            -- Equipo afectado (opcional)
+            
+            problema TEXT NOT NULL,
+            descripcion_detallada TEXT,
+            
+            estado TEXT NOT NULL DEFAULT 'Abierto',
+            prioridad TEXT NOT NULL DEFAULT 'Media',
+            categoria TEXT NOT NULL DEFAULT 'Otro',
+            
+            solucion TEXT,
+            fecha_inicio DATE,
+            fecha_finalizacion DATE,
+            
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+            FOREIGN KEY (tecnico_id) REFERENCES usuarios (id) ON DELETE SET NULL,
+            FOREIGN KEY (equipo_id) REFERENCES equipos (id) ON DELETE SET NULL
+        )
+        """)
+
+        # 4. Tabla de MANTENIMIENTOS (Cronograma)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS mantenimientos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            equipo_id INTEGER,
+            equipo_id INTEGER NOT NULL,
             titulo TEXT NOT NULL,
-            fecha_programada TEXT NOT NULL,
-            estado TEXT NOT NULL,
-            fecha_ejecucion TEXT,
-            tecnico_asignado TEXT,
-            observaciones TEXT,
-            FOREIGN KEY (equipo_id) REFERENCES equipos (id)
-        )""")
+            fecha_programada DATE NOT NULL,
+            estado TEXT DEFAULT 'Pendiente',
+            tecnico_asignado_id INTEGER,
+            FOREIGN KEY (equipo_id) REFERENCES equipos (id) ON DELETE CASCADE,
+            FOREIGN KEY (tecnico_asignado_id) REFERENCES usuarios (id) ON DELETE SET NULL
+        )
+        """)
+
+        # 5. Tabla de AUDITORÍA (Logs) - ¡Nuevo! Para ser robustos
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS auditoria_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER,
+            accion TEXT NOT NULL,
+            detalles TEXT,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE SET NULL
+        )
+        """)
+
+        # Crear Admin por defecto si no existe
+        admin_user = 'admin'
+        cursor.execute("SELECT * FROM usuarios WHERE username = ?", (admin_user,))
+        if not cursor.fetchone():
+            hashed_pw = generate_password_hash('admin123')
+            cursor.execute("""
+                INSERT INTO usuarios (username, password_hash, role, email) 
+                VALUES (?, ?, ?, ?)
+            """, (admin_user, hashed_pw, 'admin', 'admin@empresa.com'))
+            print("✅ Usuario 'admin' creado (Pass: admin123). ¡Cámbialo pronto!")
 
         conn.commit()
-        print("✅ Tablas listas y verificadas.")
+        print("✅ Tablas verificadas y estructura robusta aplicada.")
 
-    # --- BLOQUE 'EXCEPT' AÑADIDO ---
-    # Esto captura cualquier error que ocurra durante la conexión o ejecución de SQL
     except sqlite3.Error as e:
-        print(f"❌ Ocurrió un error en la base de datos: {e}")
-
-    # --- BLOQUE 'FINALLY' AÑADIDO ---
-    # Esto asegura que la conexión a la base de datos siempre se cierre,
-    # incluso si ocurre un error.
+        print(f"❌ Error en base de datos: {e}")
     finally:
-        if conn:
-            conn.close()
-            print("Conexión a la base de datos cerrada.")
+        conn.close()
 
 if __name__ == '__main__':
     crear_tablas()

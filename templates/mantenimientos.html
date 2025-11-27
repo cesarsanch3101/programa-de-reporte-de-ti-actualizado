@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-tools"></i> Cronograma de Mantenimiento</h2>
+    <a href="{{ url_for('programar_mantenimiento') }}" class="btn btn-warning text-dark">
+        <i class="fas fa-calendar-plus"></i> Programar Tarea
+    </a>
+</div>
+
+<div class="row">
+    {% for mant in mantenimientos %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm border-start border-5 
+            {% if mant.estado == 'Pendiente' %}border-warning{% else %}border-success{% endif %}">
+            
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title text-truncate" title="{{ mant.titulo }}">{{ mant.titulo }}</h5>
+                    {% if mant.estado == 'Pendiente' %}
+                        <span class="badge bg-warning text-dark">Pendiente</span>
+                    {% else %}
+                        <span class="badge bg-success">Realizado</span>
+                    {% endif %}
+                </div>
+                
+                <h6 class="card-subtitle mb-3 text-primary mt-2">
+                    <i class="fas fa-laptop"></i> {{ mant.nombre_equipo }}
+                </h6>
+                
+                <div class="mb-3">
+                    <p class="card-text mb-1">
+                        <i class="far fa-calendar-alt"></i> Programado: <strong>{{ mant.fecha_programada }}</strong>
+                    </p>
+                    
+                    {% if mant.motivo_reprogramacion %}
+                        <div class="alert alert-info py-1 px-2 mt-2 small">
+                            <i class="fas fa-history"></i> <strong>Reprogramado:</strong> {{ mant.motivo_reprogramacion }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                {% if mant.estado == 'Pendiente' %}
+                    <div class="d-grid gap-2">
+                        <form action="{{ url_for('completar_mantenimiento', mant_id=mant.id) }}" method="POST">
+                            <button class="btn btn-sm btn-outline-success w-100">
+                                <i class="fas fa-check"></i> Realizar Ahora
+                            </button>
+                        </form>
+                        
+                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#modalReprogramar{{ mant.id }}">
+                            <i class="fas fa-clock"></i> Cambiar Fecha
+                        </button>
+                    </div>
+
+                    <div class="modal fade" id="modalReprogramar{{ mant.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Reprogramar Tarea</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form action="{{ url_for('reprogramar_mantenimiento', mant_id=mant.id) }}" method="POST">
+                                    <div class="modal-body">
+                                        <p>Estás cambiando la fecha para: <strong>{{ mant.titulo }}</strong></p>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Nueva Fecha</label>
+                                            <input type="date" name="nueva_fecha" class="form-control" required min="{{ mant.fecha_programada }}">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Motivo del Cambio (Obligatorio)</label>
+                                            <textarea name="motivo" class="form-control" rows="2" placeholder="Ej: Usuario no disponible, falta de repuestos..." required></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Guardar Cambio</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <small class="text-success"><i class="fas fa-check-circle"></i> Hecho por: {{ mant.tecnico }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center text-muted py-5">
+        <p>No hay mantenimientos programados.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
