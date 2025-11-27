@@ -1,0 +1,50 @@
+<!-- templates/admin_form_equipo.html (NUEVO ARCHIVO) -->
+
+{% extends 'layout.html' %}
+
+{% block title %}{{ 'Editar' if equipo else 'Añadir' }} Equipo{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>{{ '✏️ Editando Equipo' if equipo else '➕ Añadir Nuevo Equipo' }}</h2>
+    
+    <form method="post">
+        <div class="form-group">
+            <label for="nombre_equipo">Nombre del Equipo (único):</label>
+            <input type="text" id="nombre_equipo" name="nombre_equipo" value="{{ equipo.nombre_equipo or '' }}" required placeholder="Ej: LAPTOP-FINANZAS-01">
+        </div>
+        <div class="form-group">
+            <label for="usuario_asignado">Usuario Asignado:</label>
+            <input type="text" id="usuario_asignado" name="usuario_asignado" value="{{ equipo.usuario_asignado or '' }}" placeholder="Ej: Juan Pérez">
+        </div>
+        <div class="form-group">
+            <label for="tipo">Tipo de Equipo:</label>
+            <select id="tipo" name="tipo">
+                {% set tipos = ['Laptop', 'Desktop', 'Servidor', 'Impresora', 'Router', 'Otro'] %}
+                {% for tipo in tipos %}
+                <option value="{{ tipo }}" {% if equipo and equipo.tipo == tipo %}selected{% endif %}>{{ tipo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="marca_modelo">Marca y Modelo:</label>
+            <input type="text" id="marca_modelo" name="marca_modelo" value="{{ equipo.marca_modelo or '' }}" placeholder="Ej: Dell Latitude 5420">
+        </div>
+        <div class="form-group">
+            <label for="numero_serie">Número de Serie:</label>
+            <input type="text" id="numero_serie" name="numero_serie" value="{{ equipo.numero_serie or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="fecha_adquisicion">Fecha de Adquisición:</label>
+            <input type="date" id="fecha_adquisicion" name="fecha_adquisicion" value="{{ equipo.fecha_adquisicion or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="notas">Notas (Recomendaciones, estado, etc.):</label>
+            <textarea id="notas" name="notas" rows="4">{{ equipo.notas or '' }}</textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Guardar Equipo</button>
+    </form>
+    <a href="{{ url_for('admin_lista_equipos') }}" style="display: block; text-align: center; margin-top: 1em;">Cancelar</a>
+</div>
+{% endblock %}

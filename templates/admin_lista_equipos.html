@@ -1,0 +1,44 @@
+<!-- templates/admin_lista_equipos.html (NUEVO ARCHIVO) -->
+
+{% extends 'layout.html' %}
+
+{% block title %}Administrar Equipos{% endblock %}
+
+{% block content %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>💻 Administrar Equipos</h1>
+        <a href="{{ url_for('admin_agregar_equipo') }}" class="btn btn-success">+ Añadir Equipo</a>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre del Equipo</th>
+                <th>Tipo</th>
+                <th>Usuario Asignado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for equipo in equipos %}
+            <tr>
+                <td>{{ equipo.id }}</td>
+                <td>{{ equipo.nombre_equipo }}</td>
+                <td>{{ equipo.tipo }}</td>
+                <td>{{ equipo.usuario_asignado or 'N/A' }}</td>
+                <td style="display: flex; gap: 5px;">
+                    <a href="{{ url_for('admin_editar_equipo', equipo_id=equipo.id) }}" class="btn btn-edit">Editar</a>
+                    <form action="{{ url_for('admin_eliminar_equipo', equipo_id=equipo.id) }}" method="post" onsubmit="return confirm('¿Seguro que quieres eliminar este equipo? Se eliminarán también sus mantenimientos programados.');">
+                        <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85em;">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center;">No hay equipos registrados. ¡Añade el primero!</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

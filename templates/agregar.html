@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agregar Nuevo Soporte</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    {% extends 'layout.html' %}
+
+    {% block title %}Registrar Nuevo Soporte{% endblock %}
+
+    {% block content %}
+    <div class="form-container">
+        <h2>➕ Registrar Nuevo Soporte</h2>
+        <form method="post">
+            <div class="form-group">
+                <label for="usuario">Nombre del Usuario:</label>
+                <input type="text" id="usuario" name="usuario" required>
+            </div>
+            <div class="form-group">
+                <label for="email_cliente">Email del Usuario (para notificaciones):</label>
+                <input type="email" id="email_cliente" name="email_cliente" required placeholder="ej: cliente@email.com">
+            </div>
+            <div class="form-group">
+                <label for="departamento">Departamento:</label>
+                <input type="text" id="departamento" name="departamento">
+            </div>
+            <div class="form-group">
+                <label for="problema">Descripción del Problema:</label>
+                <input type="text" id="problema" name="problema" required>
+            </div>
+            <div class="form-group">
+                <label for="categoria">Categoría:</label>
+                <select id="categoria" name="categoria">
+                    {% for cat in categorias %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="prioridad">Prioridad:</label>
+                <select id="prioridad" name="prioridad">
+                    {% for pri in prioridades %}
+                    <option value="{{ pri }}">{{ pri }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar Soporte</button>
+        </form>
+        <a href="{{ url_for('lista_soportes') }}" style="display: block; text-align: center; margin-top: 1em;">Cancelar y volver a la lista</a>
+    </div>
+    {% endblock %}
+
+</body>
+</html>

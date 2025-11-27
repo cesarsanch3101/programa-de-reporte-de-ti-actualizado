@@ -1,0 +1,29 @@
+<!-- templates/admin_dashboard.html (Versión Actualizada) -->
+
+{% extends 'layout.html' %}
+
+{% block title %}Panel de Administración{% endblock %}
+
+{% block content %}
+    <h1>🛡️ Panel de Administración</h1>
+    <p>Desde aquí puedes gestionar los usuarios, equipos y la configuración general de la aplicación.</p>
+
+    <div class="stats-cards" style="margin-top: 30px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+        <a href="{{ url_for('admin_lista_usuarios') }}" class="card" style="text-decoration: none; color: inherit; display: block;">
+            <div class="number" style="font-size: 3.5em;">👥</div>
+            <div class="label" style="font-size: 1.5em; margin-top: 10px; color: #333;">Administrar Usuarios</div>
+            <p style="color: #666; margin-top: 10px;">Crear y visualizar cuentas de técnicos y administradores.</p>
+        </a>
+        <!-- NUEVO ENLACE A LA GESTIÓN DE EQUIPOS -->
+        <a href="{{ url_for('admin_lista_equipos') }}" class="card" style="text-decoration: none; color: inherit; display: block;">
+            <div class="number" style="font-size: 3.5em;">💻</div>
+            <div class="label" style="font-size: 1.5em; margin-top: 10px; color: #333;">Administrar Equipos</div>
+            <p style="color: #666; margin-top: 10px;">Gestionar el inventario de hardware para el cronograma de mantenimiento.</p>
+        </a>
+        <a href="{{ url_for('admin_config_email') }}" class="card" style="text-decoration: none; color: inherit; display: block;">
+            <div class="number" style="font-size: 3.5em;">⚙️</div>
+            <div class="label" style="font-size: 1.5em; margin-top: 10px; color: #333;">Configuración de Correo</div>
+            <p style="color: #666; margin-top: 10px;">Ajustar los parámetros del servidor SMTP para notificaciones.</p>
+        </a>
+    </div>
+{% endblock %}

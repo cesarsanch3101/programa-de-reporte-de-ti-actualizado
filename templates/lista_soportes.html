@@ -1,0 +1,149 @@
+{% extends 'layout.html' %}
+
+{% block title %}Lista de Soportes{% endblock %}
+
+{% block content %}
+    <h1>📋 Lista de Soportes</h1>
+    
+    <div class="report-panel" style="background-color: rgba(230, 230, 230, 0.7); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="get" id="filter-form">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+                <div class="form-group">
+                    <label for="q">Búsqueda General:</label>
+                    <input type="text" id="q" name="q" value="{{ filters.q or '' }}" placeholder="ID, usuario, problema...">
+                </div>
+                <div class="form-group">
+                    <label for="start_date">Desde:</label>
+                    <input type="date" id="start_date" name="start_date" value="{{ filters.start_date or '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="end_date">Hasta:</label>
+                    <input type="date" id="end_date" name="end_date" value="{{ filters.end_date or '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="categoria">Categoría:</label>
+                    <select id="categoria" name="categoria">
+                        <option value="todas">-- Todas --</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat }}" {% if filters.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="departamento">Departamento:</label>
+                    <select id="departamento" name="departamento">
+                        <option value="todos">-- Todos --</option>
+                        {% for depto in departamentos %}
+                        <option value="{{ depto.departamento }}" {% if filters.departamento == depto.departamento %}selected{% endif %}>
+                            {{ depto.departamento }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                </div>
+            </div>
+        </form>
+        <hr style="margin: 20px 0;">
+        <div class="action-buttons" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{{ url_for('agregar') }}" class="btn btn-success">+ Agregar Soporte</a>
+            <a id="export-excel" href="#" class="btn" style="background-color: #1D6F42;">Exportar a Excel</a>
+            <a id="export-pdf" href="#" class="btn btn-danger">Exportar a PDF</a>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Estado</th>
+                <th>Usuario</th>
+                <th>Departamento</th>
+                <th>Problema</th>
+                <th>Categoría</th>
+                <th>Técnico</th>
+                <th>Fecha Inicio</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in soportes %}
+            <tr>
+                <td>{{ ticket.id }}</td>
+                <td>{{ ticket.estado }}</td>
+                <td>{{ ticket.usuario }}</td>
+                <td>{{ ticket.departamento or 'N/A' }}</td>
+                <td>{{ ticket.problema }}</td>
+                <td>{{ ticket.categoria }}</td>
+                <td>{{ ticket.tecnico or 'N/A' }}</td>
+                <td>{{ ticket.fecha_inicio }}</td>
+                <td style="display: flex; gap: 5px;">
+                    <a href="{{ url_for('editar', ticket_id=ticket.id) }}" class="btn btn-edit">Editar</a>
+                    {% if session.role == 'admin' %}
+                    <form action="{{ url_for('eliminar', ticket_id=ticket.id) }}" method="post" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este ticket?');">
+                        <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85em;">Eliminar</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" style="text-align: center;">No se encontraron soportes con los criterios seleccionados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if total_pages > 1 %}
+    <nav class="pagination">
+        <a href="{{ url_for('lista_soportes', page=page-1, **pagination_params) }}" class="{{ 'disabled' if page == 1 else '' }}">
+            &laquo; Anterior
+        </a>
+        {% for p in range(1, total_pages + 1) %}
+            <a href="{{ url_for('lista_soportes', page=p, **pagination_params) }}" class="{{ 'active' if p == page else '' }}">
+                {{ p }}
+            </a>
+        {% endfor %}
+        <a href="{{ url_for('lista_soportes', page=page+1, **pagination_params) }}" class="{{ 'disabled' if page == total_pages else '' }}">
+            Siguiente &raquo;
+        </a>
+    </nav>
+    {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Esta función se asegura de que los enlaces de exportación siempre
+        // incluyan los filtros que has seleccionado en el formulario.
+        function updateExportLinks() {
+            const form = document.getElementById('filter-form');
+            // Si el formulario no existe, no hacemos nada para evitar errores.
+            if (!form) return;
+
+            const params = new URLSearchParams(new FormData(form)).toString();
+            
+            const excelLink = document.getElementById('export-excel');
+            const pdfLink = document.getElementById('export-pdf');
+            
+            if (excelLink) {
+                excelLink.href = "{{ url_for('exportar_excel') }}?" + params;
+            }
+            if (pdfLink) {
+                pdfLink.href = "{{ url_for('exportar_pdf') }}?" + params;
+            }
+        }
+
+        // Llamamos a la función una vez cuando la página carga
+        updateExportLinks();
+
+        // Y también cada vez que se cambia un valor en el formulario de filtros
+        const filterForm = document.getElementById('filter-form');
+        if (filterForm) {
+            filterForm.addEventListener('input', updateExportLinks);
+        }
+    });
+</script>
+{% endblock %}

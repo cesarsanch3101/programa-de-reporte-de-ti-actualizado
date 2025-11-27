@@ -1,0 +1,45 @@
+{% extends 'layout.html' %}
+
+{% block title %}Editar Soporte #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>✏️ Editando Soporte #{{ ticket.id }}</h2>
+    
+    <div class="ticket-info">
+        <p><strong>Usuario:</strong> {{ ticket.usuario }}</p>
+        <p><strong>Problema:</strong> {{ ticket.problema }}</p>
+        <hr>
+        <p><strong>Fecha de Creación:</strong> {{ ticket.fecha_inicio or 'N/A' }}</p>
+        {% if ticket.fecha_finalizacion %}
+        <p><strong>Fecha de Finalización:</strong> {{ ticket.fecha_finalizacion }}</p>
+        {% endif %}
+    </div>
+
+    <form method="post">
+        <div class="form-group">
+            <label for="estado">Estado:</label>
+            <select id="estado" name="estado">
+                {% for est in estados %}
+                <option value="{{ est }}" {% if ticket.estado == est %}selected{% endif %}>{{ est }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="tecnico">Técnico Asignado:</label>
+            <input type="text" id="tecnico" name="tecnico" value="{{ ticket.tecnico or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="solucion">Solución Aplicada:</label>
+            <input type="text" id="solucion" name="solucion" value="{{ ticket.solucion or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="comentarios_solucion">Comentarios Adicionales:</label>
+            <textarea id="comentarios_solucion" name="comentarios_solucion" rows="4">{{ ticket.comentarios_solucion or '' }}</textarea>
+        </div>
+        
+        <button type="submit">Actualizar Soporte</button>
+    </form>
+    <a href="{{ url_for('lista_soportes') }}">Cancelar y volver a la lista</a>
+</div>
+{% endblock %}

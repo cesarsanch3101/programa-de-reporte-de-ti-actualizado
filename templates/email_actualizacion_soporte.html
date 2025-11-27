@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 600px; background-color: #f9f9f9; }
+        .header { background-color: #3498db; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header h2 { margin: 0; }
+        .content { padding: 25px; background-color: #ffffff; border-radius: 0 0 8px 8px; }
+        .content p { margin: 0 0 15px 0; }
+        .status { padding: 10px; border-radius: 5px; text-align: center; font-weight: bold; color: white; margin-top: 10px; margin-bottom: 20px; font-size: 1.1em; }
+        .status-enproceso { background-color: #f39c12; }
+        .status-resuelto { background-color: #2ecc71; }
+        .status-cerrado { background-color: #95a5a6; }
+        .solution { background-color: #f2f2f2; border-left: 4px solid #3498db; padding: 15px; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 0.8em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Actualización de tu Soporte</h2>
+        </div>
+        <div class="content">
+            <p>Hola <strong>{{ ticket.usuario }}</strong>,</p>
+            <p>Hay una novedad sobre tu solicitud de soporte con <strong>ID #{{ ticket.id }}</strong>.</p>
+            
+            <p>El estado de tu ticket ha sido actualizado a:</p>
+            <div class="status status-{{ nuevo_estado|lower|replace(' ', '') }}">
+                {{ nuevo_estado }}
+            </div>
+
+            {% if nuevo_estado in ['Resuelto', 'Cerrado'] and ticket.solucion %}
+            <div class="solution">
+                <p style="margin-bottom: 5px;"><strong>Solución Aplicada por {{ ticket.tecnico }}:</strong></p>
+                <p style="margin: 0;"><em>{{ ticket.solucion }}</em></p>
+            </div>
+            {% endif %}
+
+            <p style="margin-top: 20px;">Para cualquier soporte o consulta puedes diriguirte al correo admin@stwards.com.</p>
+            <p>Gracias,<br>El Equipo de Soporte Técnico de Stward Corporation</p>
+        </div>
+    </div>
+    <div class="footer">
+        <p>Este es un correo electrónico generado automáticamente. Por favor, no respondas a este mensaje.</p>
+    </div>
+</body>
+</html>

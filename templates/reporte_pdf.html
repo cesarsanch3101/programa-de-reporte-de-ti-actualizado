@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Soportes</title>
+    <style>
+        @page { size: A4 landscape; margin: 1.5cm; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 9px; color: #333; }
+        h1 { text-align: center; color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 5px; }
+        .report-info { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 5px; text-align: left; word-wrap: break-word; }
+        th { background-color: #eef2f7; font-weight: bold; }
+        tbody tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Reporte de Soportes</h1>
+    <div class="report-info">
+        <p><strong>Período del reporte:</strong> {{ start_date or 'N/A' }} - {{ end_date or 'N/A' }}</p>
+        <p><strong>Categoría seleccionada:</strong> {{ 'Todas' if selected_category == 'todas' else selected_category }}</p>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">ID</th>
+                <th style="width: 8%;">Estado</th>
+                <th style="width: 12%;">Usuario</th>
+                <th style="width: 10%;">Departamento</th>
+                <th style="width: 20%;">Problema</th>
+                <th style="width: 10%;">Categoría</th>
+                <th style="width: 25%;">Solución Aplicada</th>
+                <th style="width: 10%;">Fecha Fin</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in soportes %}
+            <tr>
+                <td>{{ ticket.id }}</td>
+                <td>{{ ticket.estado }}</td>
+                <td>{{ ticket.usuario }}</td>
+                <td>{{ ticket.departamento or 'N/A' }}</td>
+                <td>{{ ticket.problema }}</td>
+                <td>{{ ticket.categoria }}</td>
+                <td>{{ ticket.solucion or 'Pendiente' }}</td>
+                <td>{{ ticket.fecha_finalizacion or 'Pendiente' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" style="text-align: center;">No hay soportes para los criterios seleccionados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

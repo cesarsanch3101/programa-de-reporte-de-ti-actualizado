@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Soportes{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+<body>
+    <header class="main-header">
+        <nav class="main-nav">
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('lista_soportes') }}">Soportes</a>
+    <a href="{{ url_for('cronograma') }}">Cronograma</a>
+    
+    {% if session.role == 'admin' %}
+    <a href="{{ url_for('admin_dashboard') }}">Panel de Administración</a>
+    {% endif %}
+            
+            {% if session.username %}
+            <a href="{{ url_for('logout') }}" style="float: right;">Cerrar Sesión ({{ session.username }})</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages" style="padding: 0; margin-bottom: 15px;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="padding: 15px; border-radius: 5px; color: #fff; background-color: {% if category == 'success' %}#28a745{% elif category == 'danger' %}#dc3545{% elif category == 'warning' %}#ffc107{% else %}#17a2b8{% endif %};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

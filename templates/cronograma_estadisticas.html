@@ -1,0 +1,114 @@
+<!-- templates/cronograma_estadisticas.html (Versión Final con Exportación a PDF) -->
+
+{% extends 'layout.html' %}
+
+{% block title %}Estadísticas de Mantenimiento{% endblock %}
+
+{% block content %}
+    <div class="dashboard-header">
+        <h1>📈 Estadísticas de Mantenimiento (Año {{ year }})</h1>
+        <div class="dashboard-actions" style="display: flex; gap: 10px;">
+            <!-- BOTÓN NUEVO PARA GENERAR PDF -->
+            <button id="export-pdf-btn" class="btn btn-danger">Generar Reporte PDF 📄</button>
+            <a href="{{ url_for('cronograma') }}" class="btn btn-primary">Volver al Calendario</a>
+        </div>
+    </div>
+
+    <!-- Contenedor que será capturado para el PDF -->
+    <div id="report-content">
+        <div class="charts-section" style="grid-template-columns: 1fr; gap: 40px; margin-top: 20px;">
+            <div class="chart-wrapper" style="height: 450px;">
+                <h3>Cumplimiento Mensual</h3>
+                <canvas id="monthlyChart"></canvas>
+            </div>
+            <div class="chart-wrapper" style="height: 450px;">
+                <h3>Cumplimiento Trimestral</h3>
+                <canvas id="quarterlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Importamos Chart.js como siempre -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- NUEVAS LIBRERÍAS PARA LA EXPORTACIÓN A PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const monthlyData = {{ monthly_data|tojson|safe }};
+        const quarterlyData = {{ quarterly_data|tojson|safe }};
+
+        // --- LÓGICA DE LOS GRÁFICOS (SIN CAMBIOS) ---
+        const ctxMonthly = document.getElementById('monthlyChart');
+        if (ctxMonthly) {
+            new Chart(ctxMonthly.getContext('2d'), {
+                type: 'bar',
+                data: monthlyData,
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: 'Mantenimientos por Mes' } },
+                    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+        }
+
+        const ctxQuarterly = document.getElementById('quarterlyChart');
+        if (ctxQuarterly) {
+            new Chart(ctxQuarterly.getContext('2d'), {
+                type: 'bar',
+                data: quarterlyData,
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: 'Mantenimientos por Trimestre' } },
+                    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+        }
+
+        // --- NUEVA LÓGICA PARA LA EXPORTACIÓN A PDF ---
+        const exportBtn = document.getElementById('export-pdf-btn');
+        const reportContent = document.getElementById('report-content');
+
+        exportBtn.addEventListener('click', function() {
+            // Mostramos un mensaje de "Generando..." para que el usuario sepa que algo está pasando
+            exportBtn.textContent = 'Generando...';
+            exportBtn.disabled = true;
+
+            html2canvas(reportContent, { 
+                scale: 2, // Aumentamos la escala para mejor calidad de imagen
+                useCORS: true 
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                
+                // Usamos la variable global que viene de la librería jsPDF
+                const { jsPDF } = window.jspdf;
+                // Creamos un PDF en formato A4 y orientación vertical (portrait)
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                const imgProps= doc.getImageProperties(imgData);
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                const reportTitle = "Reporte de Estadísticas de Mantenimiento - Año {{ year }}";
+                
+                // Añadimos el título al PDF
+                doc.setFontSize(16);
+                doc.text(reportTitle, 15, 15);
+
+                // Añadimos la imagen de los gráficos
+                doc.addImage(imgData, 'PNG', 10, 25, pdfWidth - 20, pdfHeight - 20);
+                
+                // Descargamos el archivo
+                doc.save(`reporte_mantenimiento_{{ year }}.pdf`);
+                
+                // Restauramos el botón a su estado original
+                exportBtn.textContent = 'Generar Reporte PDF 📄';
+                exportBtn.disabled = false;
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'layout.html' %}
+
+{% block title %}Administrar Usuarios{% endblock %}
+
+{% block content %}
+    <h1>👥 Administrar Usuarios</h1>
+    <a href="{{ url_for('admin_agregar_equipo') }}" class="btn btn-add">Crear Nuevo Usuario</a>
+    
+    <table class="table-users">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre de Usuario</th>
+                <th>Rol</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+            <tr>
+                <td>{{ usuario.id }}</td>
+                <td>{{ usuario.username }}</td>
+                <td>{{ usuario.role }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

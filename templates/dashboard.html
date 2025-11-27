@@ -1,0 +1,84 @@
+{% extends 'layout.html' %}
+
+{% block title %}Dashboard - Sistema de Soportes{% endblock %}
+
+{% block content %}
+    <div class="dashboard-header">
+        <h1>📊 Dashboard de Soportes</h1>
+        <div class="dashboard-actions">
+            <a href="{{ url_for('lista_soportes') }}" class="btn btn-primary">Ver Soportes</a>
+            <a href="{{ url_for('agregar') }}" class="btn btn-success">Crear Nuevo Soporte</a>
+        </div>
+    </div>
+
+    <div class="stats-cards">
+        <div class="card">
+            <div class="number">{{ data.total_abiertos or 0 }}</div>
+            <div class="label">Tickets Abiertos</div>
+        </div>
+        <div class="card">
+            <div class="number">{{ data.total_en_proceso or 0 }}</div>
+            <div class="label">Tickets En Proceso</div>
+        </div>
+    </div>
+
+    <div class="charts-section">
+        <div class="chart-wrapper">
+            <h3>Soportes por Estado</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+            <h3>Soportes por Categoría</h3>
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const statusLabels = {{ data.labels_estados|tojson or [] }};
+        const statusValues = {{ data.valores_estados|tojson or [] }};
+        const categoryLabels = {{ data.labels_categorias|tojson or [] }};
+        const categoryValues = {{ data.valores_categorias|tojson or [] }};
+
+        const ctxStatus = document.getElementById('statusChart');
+        if (ctxStatus && statusValues && statusValues.length > 0) {
+            new Chart(ctxStatus.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        label: 'Soportes',
+                        data: statusValues,
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        const ctxCategory = document.getElementById('categoryChart');
+        if (ctxCategory && categoryValues && categoryValues.length > 0) {
+            new Chart(ctxCategory.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        label: 'Cantidad de Soportes',
+                        data: categoryValues,
+                        backgroundColor: '#36A2EB'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
