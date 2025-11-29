@@ -1,0 +1,142 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+    <a href="{{ url_for('lista_equipos') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Volver al Inventario
+    </a>
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="fas fa-print"></i> Imprimir Ficha
+    </button>
+</div>
+
+<div class="card shadow-lg border-0 mx-auto ficha-tecnica" style="max-width: 850px;">
+    <div class="card-body p-5">
+        
+        <div class="row border-bottom pb-4 mb-4 align-items-center">
+            <div class="col-8">
+                <h2 class="fw-bold text-uppercase mb-0">Ficha Técnica de Activo</h2>
+                <p class="text-muted mb-0">ID Sistema: #{{ equipo.id }} | Fecha Impresión: <script>document.write(new Date().toLocaleDateString())</script></p>
+            </div>
+            <div class="col-4 text-end">
+                <div class="display-6 fw-bold text-primary">{{ equipo.nombre_equipo }}</div>
+                <span class="badge bg-dark">{{ equipo.tipo }}</span>
+            </div>
+        </div>
+
+        <h5 class="text-uppercase text-secondary border-bottom pb-2 mb-3">1. Información del Equipo</h5>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless">
+                    <tr><td class="fw-bold" width="40%">Marca/Modelo:</td><td>{{ equipo.marca_modelo }}</td></tr>
+                    <tr><td class="fw-bold">Número de Serie:</td><td class="font-monospace">{{ equipo.numero_serie or 'N/A' }}</td></tr>
+                    <tr><td class="fw-bold">Fecha Compra:</td><td>{{ equipo.fecha_compra or 'Desconocida' }}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 bg-light rounded border">
+                    <h6 class="fw-bold mb-2">Asignación Actual</h6>
+                    {% if equipo.usuario_asignado %}
+                        <p class="mb-1"><i class="fas fa-user"></i> <strong>{{ equipo.usuario_asignado }}</strong></p>
+                        <p class="mb-0 small text-muted">{{ equipo.departamento or 'Departamento General' }}</p>
+                    {% else %}
+                        <p class="text-success mb-0"><i class="fas fa-box"></i> Disponible en Stock</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <h5 class="text-uppercase text-secondary border-bottom pb-2 mb-3">2. Especificaciones Técnicas</h5>
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body text-center">
+                        <i class="fas fa-microchip fa-2x text-secondary mb-2"></i>
+                        <h6 class="card-title fw-bold">Procesador</h6>
+                        <p class="card-text small">{{ equipo.procesador or '--' }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body text-center">
+                        <i class="fas fa-memory fa-2x text-secondary mb-2"></i>
+                        <h6 class="card-title fw-bold">Memoria RAM</h6>
+                        <p class="card-text small">{{ equipo.memoria_ram or '--' }} <br> {{ equipo.tipo_ram or '' }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body text-center">
+                        <i class="fas fa-hdd fa-2x text-secondary mb-2"></i>
+                        <h6 class="card-title fw-bold">Almacenamiento</h6>
+                        <p class="card-text small">{{ equipo.disco_duro or '--' }} <br> {{ equipo.tipo_disco or '' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h5 class="text-uppercase text-secondary border-bottom pb-2 mb-3">3. Historial de Mantenimientos</h5>
+        <table class="table table-bordered table-sm small">
+            <thead class="table-light">
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tarea Realizada</th>
+                    <th>Estado</th>
+                    <th>Técnico</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mant in historial %}
+                <tr>
+                    <td>{{ mant.fecha_programada }}</td>
+                    <td>{{ mant.titulo }}</td>
+                    <td>{{ mant.estado }}</td>
+                    <td>{{ mant.tecnico_asignado_id or '--' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted">Sin mantenimientos registrados</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="row mt-5 pt-5 d-none d-print-flex">
+            <div class="col-6 text-center">
+                <div class="border-top border-dark w-75 mx-auto pt-2">Firma Responsable TI</div>
+            </div>
+            <div class="col-6 text-center">
+                <div class="border-top border-dark w-75 mx-auto pt-2">Firma Usuario Asignado</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+@media print {
+    body * {
+        visibility: hidden; /* Oculta todo */
+    }
+    .ficha-tecnica, .ficha-tecnica * {
+        visibility: visible; /* Muestra solo la ficha */
+    }
+    .ficha-tecnica {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none !important; /* Quita sombras */
+        border: none !important;
+    }
+    .d-print-flex {
+        display: flex !important; /* Muestra las firmas */
+    }
+    /* Asegura que los fondos se impriman (badges, cards grises) */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+</style>
+{% endblock %}

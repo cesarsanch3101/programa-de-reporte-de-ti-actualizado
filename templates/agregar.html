@@ -9,42 +9,48 @@
             </div>
             <div class="card-body p-4">
                 
-                <div class="alert alert-info d-flex align-items-center" role="alert">
-                    <i class="fas fa-user-circle fa-2x me-3"></i>
-                    <div>
-                        Reportando como: <strong>{{ session['username'] }}</strong>
-                    </div>
-                </div>
-
                 <form method="POST" action="{{ url_for('agregar') }}">
                     
                     <div class="mb-3">
-                        <label for="categoria" class="form-label">Categoría del Problema</label>
-                        <select class="form-select" id="categoria" name="categoria" required>
-                            {% for cat in categorias %}
-                            <option value="{{ cat }}">{{ cat }}</option>
+                        <label for="usuario_id" class="form-label fw-bold">¿Quién reporta el problema?</label>
+                        <select class="form-select" id="usuario_id" name="usuario_id" required>
+                            {% for u in usuarios %}
+                            <option value="{{ u.id }}" {% if u.id == session['user_id'] %}selected{% endif %}>
+                                {{ u.username }}
+                            </option>
                             {% endfor %}
                         </select>
+                        <div class="form-text">Se enviará una notificación al correo de este usuario.</div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="prioridad" class="form-label">Prioridad Solicitada</label>
-                        <select class="form-select" id="prioridad" name="prioridad" required>
-                            {% for prio in prioridades %}
-                            <option value="{{ prio }}" {% if prio == 'Media' %}selected{% endif %}>{{ prio }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">Usa 'Urgente' solo si el problema detiene completamente tu trabajo.</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria" class="form-label">Categoría</label>
+                            <select class="form-select" id="categoria" name="categoria" required>
+                                {% for cat in categorias %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="prioridad" class="form-label">Prioridad</label>
+                            <select class="form-select" id="prioridad" name="prioridad" required>
+                                {% for prio in prioridades %}
+                                <option value="{{ prio }}" {% if prio == 'Media' %}selected{% endif %}>{{ prio }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mb-4">
                         <label for="problema" class="form-label">Descripción del Problema</label>
-                        <textarea class="form-control" id="problema" name="problema" rows="4" placeholder="Describe qué sucede, mensajes de error, etc..." required></textarea>
+                        <textarea class="form-control" id="problema" name="problema" rows="4" placeholder="Describe qué sucede..." required></textarea>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="{{ url_for('lista_soportes') }}" class="btn btn-outline-secondary me-md-2">Cancelar</a>
-                        <button type="submit" class="btn btn-primary px-4">Crear Ticket</button>
+                        <button type="submit" class="btn btn-primary px-4">Crear Ticket y Notificar</button>
                     </div>
                 </form>
             </div>

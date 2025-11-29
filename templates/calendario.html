@@ -3,13 +3,38 @@
 {% block content %}
 <div class="card shadow-sm h-100">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <h4 class="mb-0 text-primary"><i class="far fa-calendar-alt"></i> Calendario de Mantenimientos</h4>
-        <a href="{{ url_for('lista_mantenimientos') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-list"></i> Ver Lista
-        </a>
+        <h4 class="mb-0 text-primary"><i class="far fa-calendar-alt"></i> Calendario Interactivo</h4>
+        <div>
+            <span class="badge bg-warning text-dark me-2">Arrastra para reprogramar</span>
+            <a href="{{ url_for('lista_mantenimientos') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-list"></i> Lista
+            </a>
+        </div>
     </div>
     <div class="card-body p-3">
         <div id='calendar'></div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDragDrop" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title text-dark">Confirmar Reprogramación</h5>
+            </div>
+            <div class="modal-body">
+                <p>Has movido la tarea: <strong id="dragTitulo"></strong></p>
+                <p>Nueva fecha: <strong id="dragFecha"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Motivo del cambio (Requerido):</label>
+                    <textarea id="dragMotivo" class="form-control" rows="2" placeholder="Ej: Falta de repuestos..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btnCancelarDrag">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarDrag">Guardar Cambio</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -18,29 +43,91 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
+    var modalElement = document.getElementById('modalDragDrop');
+    var modalDrag = new bootstrap.Modal(modalElement);
     
+    // Variables temporales para el drag & drop
+    var eventoArrastrado = null;
+    var revertirCambio = null;
+
     var calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth', // Vista mensual por defecto
+      initialView: 'dayGridMonth',
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
-        right: 'dayGridMonth,timeGridWeek,listYear' // Botones de vistas
+        right: 'dayGridMonth,timeGridWeek,listYear'
       },
-      locale: 'es', // Español
+      locale: 'es',
       height: 'auto',
-      navLinks: true, // Click en día para ver detalles
-      events: '{{ url_for("api_eventos") }}', // API que creamos en app.py
+      navLinks: true,
+      editable: true, // ¡ESTO PERMITE ARRASTRAR!
+      events: '{{ url_for("api_eventos") }}',
       
+      // Callback: Cuando se suelta un evento en otro día
+      eventDrop: function(info) {
+        eventoArrastrado = info.event;
+        revertirCambio = info.revert; // Función para deshacer si cancela
+
+        // Llenar datos del modal
+        document.getElementById('dragTitulo').textContent = info.event.title;
+        document.getElementById('dragFecha').textContent = info.event.start.toLocaleDateString();
+        document.getElementById('dragMotivo').value = ''; // Limpiar motivo
+
+        // Mostrar Modal
+        modalDrag.show();
+      },
+
       eventClick: function(info) {
-        // Al hacer click en un evento, abre la URL (lista de mtto)
         if (info.event.url) {
           window.location.href = info.event.url;
-          info.jsEvent.preventDefault(); // Evita que el navegador abra nueva pestaña
+          info.jsEvent.preventDefault();
         }
       }
     });
     
     calendar.render();
+
+    // --- LÓGICA DEL MODAL ---
+    
+    // Botón Cancelar: Revertir el movimiento en el calendario
+    document.getElementById('btnCancelarDrag').addEventListener('click', function() {
+        if (revertirCambio) revertirCambio();
+        modalDrag.hide();
+    });
+
+    // Botón Confirmar: Enviar a la API
+    document.getElementById('btnConfirmarDrag').addEventListener('click', function() {
+        var motivo = document.getElementById('dragMotivo').value;
+        if (!motivo) {
+            alert("Por favor, ingresa un motivo para el cambio.");
+            return;
+        }
+
+        // Enviar datos al backend con fetch
+        fetch('{{ url_for("mover_mantenimiento") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: eventoArrastrado.id,
+                nueva_fecha: eventoArrastrado.start.toISOString().split('T')[0], // Formato YYYY-MM-DD
+                motivo: motivo
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                modalDrag.hide();
+                // Opcional: Mostrar toast de éxito
+            } else {
+                alert("Error al guardar.");
+                revertirCambio();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            revertirCambio();
+        });
+    });
   });
 </script>
 
@@ -48,13 +135,10 @@
     #calendar {
         max-width: 100%;
         margin: 0 auto;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Segoe UI', sans-serif;
     }
     .fc-event {
-        cursor: pointer;
-        border: none;
-        padding: 2px;
-        font-size: 0.9em;
+        cursor: move; /* Cursor de movimiento */
     }
 </style>
 {% endblock %}
