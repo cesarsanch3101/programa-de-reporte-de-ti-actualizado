@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión TI</title>
+    <title>Sistema de Gestión TI Enterprise</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="bg-light">
+<body class="bg-light sap-mode">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm z-index-1000">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                <i class="fas fa-network-wired me-2"></i>Soporte TI
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-network-wired me-2 text-warning"></i>Soporte TI <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6em;">PRO</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -28,33 +34,34 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('lista_soportes') }}"><i class="fas fa-ticket-alt"></i> Tickets</a>
                     </li>
-                    
                     {% if session.get('role') in ['admin', 'tecnico'] %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                             <i class="fas fa-laptop"></i> Activos
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('lista_equipos') }}">Inventario de Equipos</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('lista_mantenimientos') }}">Cronograma Mantenimiento</a></li>
+                        <ul class="dropdown-menu shadow">
+                            <li><a class="dropdown-item" href="{{ url_for('lista_equipos') }}">Inventario</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('lista_mantenimientos') }}">Cronograma</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('ver_calendario') }}"><i class="far fa-calendar-alt me-2"></i> Ver Calendario Anual</a></li>
                         </ul>
                     </li>
                     {% endif %}
-                    
                     {% if session.get('role') == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin_usuarios') }}"><i class="fas fa-users-cog"></i> Usuarios</a>
                     </li>
                     {% endif %}
                 </ul>
-                
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle"></i> {{ session.get('username') }}
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle-sm me-2">{{ session.get('username')[0].upper() }}</div>
+                                {{ session.get('username') }}
+                            </div>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Cerrar Sesión</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -63,11 +70,11 @@
         </div>
     </nav>
 
-    <main class="container py-4">
+    <main class="container-fluid py-3 main-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
                         {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
@@ -77,6 +84,45 @@
         {% block content %}{% endblock %}
     </main>
 
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+    
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.colVis.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Convierte cualquier tabla con clase 'tabla-enterprise' en una DataGrid avanzada
+            var table = $('.tabla-enterprise').DataTable({
+                responsive: true,
+                dom: '<"row mb-3"<"col-md-6"B><"col-md-6"f>>' + // Botones a la izquierda, Buscador a la derecha
+                     'rt' + // La tabla (rt)
+                     '<"row mt-3"<"col-md-6"i><"col-md-6"p>>', // Información y Paginación abajo
+                buttons: [
+                    { extend: 'excel', className: 'btn btn-success btn-sm', text: '<i class="fas fa-file-excel"></i> Excel' },
+                    { extend: 'pdf', className: 'btn btn-danger btn-sm', text: '<i class="fas fa-file-pdf"></i> PDF' },
+                    { extend: 'print', className: 'btn btn-secondary btn-sm', text: '<i class="fas fa-print"></i> Imprimir' },
+                    { extend: 'colvis', className: 'btn btn-outline-dark btn-sm', text: '<i class="fas fa-columns"></i> Columnas' }
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json"
+                },
+                pageLength: 20, // 20 registros por defecto
+                scrollY: '65vh', // Altura fija estilo SAP
+                scrollCollapse: true,
+                paging: true
+            });
+        });
+    </script>
 </body>
 </html>

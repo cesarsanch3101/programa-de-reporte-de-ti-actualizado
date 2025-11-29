@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, g
+from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
 import sqlite3
+import os
 from datetime import datetime
 from flask_mail import Mail
 
@@ -12,6 +13,12 @@ config = config_dict['development']
 app = Flask(__name__)
 app.config.from_object(config)
 mail = Mail(app)
+
+# --- RUTA FAVICON (NUEVO) ---
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # --- Base de Datos ---
 def get_db():
@@ -46,7 +53,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- Rutas Base ---
+# --- Rutas de Autenticación ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -68,18 +75,36 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# --- DASHBOARD (Con corrección .datos para JSON) ---
 @app.route('/')
 @app.route('/dashboard')
 @login_required
 def dashboard():
     db = get_db()
-    stats = {
+    
+    # 1. Contadores Tarjetas (KPIs)
+    kpis = {
         "total_abiertos": db.execute("SELECT COUNT(*) FROM soportes WHERE estado = 'Abierto'").fetchone()[0],
         "total_en_proceso": db.execute("SELECT COUNT(*) FROM soportes WHERE estado = 'En Proceso'").fetchone()[0],
         "mis_tickets": db.execute("SELECT COUNT(*) FROM soportes WHERE usuario_id = ?", (session['user_id'],)).fetchone()[0],
         "mantenimientos_pendientes": db.execute("SELECT COUNT(*) FROM mantenimientos WHERE estado = 'Pendiente'").fetchone()[0]
     }
-    return render_template('dashboard.html', data=stats)
+
+    # 2. Gráfico de ESTADO
+    estados_raw = db.execute("SELECT estado, COUNT(*) as cantidad FROM soportes GROUP BY estado").fetchall()
+    grafico_estado = {
+        "labels": [row['estado'] for row in estados_raw],
+        "datos": [row['cantidad'] for row in estados_raw] # Clave corregida a 'datos'
+    }
+
+    # 3. Gráfico de CATEGORÍAS
+    cats_raw = db.execute("SELECT categoria, COUNT(*) as cantidad FROM soportes GROUP BY categoria ORDER BY cantidad DESC").fetchall()
+    grafico_cat = {
+        "labels": [row['categoria'] for row in cats_raw],
+        "datos": [row['cantidad'] for row in cats_raw]   # Clave corregida a 'datos'
+    }
+
+    return render_template('dashboard.html', kpis=kpis, g_estado=grafico_estado, g_cat=grafico_cat)
 
 # --- Tickets ---
 @app.route('/soportes')
@@ -134,7 +159,7 @@ def editar(ticket_id):
     tecnicos = db.execute("SELECT id, username FROM usuarios WHERE role IN ('admin', 'tecnico')").fetchall()
     return render_template('editar.html', ticket=ticket, tecnicos=tecnicos, estados=config.ESTADOS, categorias=config.CATEGORIAS, prioridades=config.PRIORIDADES)
 
-# --- EQUIPOS (ACTUALIZADO CON NUEVOS CAMPOS) ---
+# --- EQUIPOS ---
 @app.route('/equipos')
 @login_required
 def lista_equipos():
@@ -152,14 +177,12 @@ def gestion_equipo(equipo_id=None):
     equipo = db.execute("SELECT * FROM equipos WHERE id = ?", (equipo_id,)).fetchone() if equipo_id else None
 
     if request.method == 'POST':
-        # Recogemos todos los campos nuevos
         data = (
             request.form['nombre_equipo'], request.form['tipo'], request.form['marca_modelo'],
             request.form['numero_serie'], request.form['procesador'], request.form['memoria_ram'],
             request.form['tipo_ram'], request.form['disco_duro'], request.form['tipo_disco'],
             request.form['fecha_compra'], request.form.get('usuario_asignado_id') or None
         )
-        
         try:
             if equipo_id:
                 db.execute("""
@@ -167,18 +190,18 @@ def gestion_equipo(equipo_id=None):
                     procesador=?, memoria_ram=?, tipo_ram=?, disco_duro=?, tipo_disco=?, fecha_compra=?,
                     usuario_asignado_id=? WHERE id=?
                 """, data + (equipo_id,))
-                flash('Equipo actualizado con especificaciones detalladas.', 'success')
+                flash('Equipo actualizado.', 'success')
             else:
                 db.execute("""
                     INSERT INTO equipos (nombre_equipo, tipo, marca_modelo, numero_serie,
                     procesador, memoria_ram, tipo_ram, disco_duro, tipo_disco, fecha_compra, usuario_asignado_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, data)
-                flash('Equipo registrado correctamente.', 'success')
+                flash('Equipo registrado.', 'success')
             db.commit()
             return redirect(url_for('lista_equipos'))
         except sqlite3.IntegrityError:
-            flash('Error: Nombre o Serie duplicados.', 'danger')
+            flash('Error: Duplicado.', 'danger')
 
     usuarios = db.execute("SELECT id, username FROM usuarios").fetchall()
     return render_template('formulario_equipo.html', equipo=equipo, usuarios=usuarios)
@@ -190,7 +213,7 @@ def eliminar_equipo(equipo_id):
     get_db().commit()
     return redirect(url_for('lista_equipos'))
 
-# --- MANTENIMIENTOS (CON REPROGRAMACIÓN) ---
+# --- MANTENIMIENTOS Y CALENDARIO API ---
 @app.route('/mantenimientos')
 @login_required
 def lista_mantenimientos():
@@ -200,6 +223,33 @@ def lista_mantenimientos():
         LEFT JOIN usuarios u ON m.tecnico_asignado_id = u.id ORDER BY m.fecha_programada ASC
     """).fetchall()
     return render_template('mantenimientos.html', mantenimientos=mantenimientos)
+
+@app.route('/calendario')
+@login_required
+def ver_calendario():
+    return render_template('calendario.html')
+
+@app.route('/api/eventos')
+@login_required
+def api_eventos():
+    db = get_db()
+    eventos_db = db.execute("""
+        SELECT m.id, m.titulo, m.fecha_programada, m.estado, e.nombre_equipo 
+        FROM mantenimientos m JOIN equipos e ON m.equipo_id = e.id
+    """).fetchall()
+    
+    eventos = []
+    for ev in eventos_db:
+        color = '#ffc107' if ev['estado'] == 'Pendiente' else '#198754'
+        texto_color = '#000000' if ev['estado'] == 'Pendiente' else '#ffffff'
+        eventos.append({
+            'title': f"{ev['nombre_equipo']}: {ev['titulo']}",
+            'start': ev['fecha_programada'],
+            'color': color,
+            'textColor': texto_color,
+            'url': url_for('lista_mantenimientos')
+        })
+    return jsonify(eventos)
 
 @app.route('/mantenimientos/programar', methods=['GET', 'POST'])
 @login_required
@@ -222,24 +272,14 @@ def completar_mantenimiento(mant_id):
     get_db().commit()
     return redirect(url_for('lista_mantenimientos'))
 
-# --- NUEVA RUTA: REPROGRAMAR ---
 @app.route('/mantenimientos/reprogramar/<int:mant_id>', methods=['POST'])
 @login_required
 def reprogramar_mantenimiento(mant_id):
     if session['role'] == 'user': return redirect(url_for('dashboard'))
-    
-    nueva_fecha = request.form['nueva_fecha']
-    motivo = request.form['motivo']
-    
-    db = get_db()
-    db.execute("""
-        UPDATE mantenimientos 
-        SET fecha_programada = ?, motivo_reprogramacion = ? 
-        WHERE id = ?
-    """, (nueva_fecha, motivo, mant_id))
-    db.commit()
-    
-    flash('Mantenimiento reprogramado exitosamente.', 'info')
+    get_db().execute("UPDATE mantenimientos SET fecha_programada = ?, motivo_reprogramacion = ? WHERE id = ?", 
+               (request.form['nueva_fecha'], request.form['motivo'], mant_id))
+    get_db().commit()
+    flash('Reprogramado.', 'success')
     return redirect(url_for('lista_mantenimientos'))
 
 # --- Admin Usuarios ---

@@ -1,27 +1,66 @@
-body {
-    min-height: 100vh;
+/* static/css/style.css */
+
+/* --- ESTILO GENERAL SAP (Aplicación de Escritorio) --- */
+body.sap-mode {
+    height: 100vh;
     display: flex;
     flex-direction: column;
+    margin: 0;
+    overflow: hidden; /* Mantiene el body fijo */
 }
 
-main {
+/* El contenedor principal ocupa el espacio restante y PERMITE SCROLL */
+.main-container {
     flex: 1;
+    overflow-y: auto; /* ¡CORRECCIÓN IMPORTANTE! Permite bajar para ver el contenido */
+    padding-bottom: 20px;
+    width: 100%;
 }
 
-.card {
-    border: none;
-    border-radius: 10px;
+/* --- BOTONES CON RELIEVE Y EFECTO HOVER --- */
+.btn {
+    transition: all 0.15s ease-in-out;
+    border-bottom: 4px solid rgba(0,0,0,0.2) !important; /* Efecto 3D */
+    font-weight: 600;
 }
 
-.avatar-circle {
-    display: inline-block;
-    width: 30px;
-    height: 30px;
+.btn:active {
+    transform: translateY(2px);
+    border-bottom: 2px solid rgba(0,0,0,0.2) !important;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Ajustes para botones outline */
+.btn-outline-primary, .btn-outline-secondary, .btn-outline-danger {
+    border-bottom: 1px solid currentColor !important;
+}
+
+/* --- AVATARES --- */
+.avatar-circle-sm {
+    width: 25px; height: 25px;
+    background-color: #ffffff33;
     border-radius: 50%;
-    background-color: #6c757d;
-    color: white;
     text-align: center;
-    line-height: 30px;
-    font-size: 0.8rem;
-    margin-right: 8px;
+    line-height: 25px;
+    font-size: 0.8em;
+}
+
+/* --- AJUSTES DATATABLES ENTERPRISE --- */
+.dataTables_wrapper .dataTables_filter input {
+    border-radius: 20px;
+    padding: 5px 15px;
+    border: 1px solid #ccc;
+}
+
+/* Encabezado fijo oscuro para tablas */
+table.dataTable thead th {
+    background-color: #212529;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }

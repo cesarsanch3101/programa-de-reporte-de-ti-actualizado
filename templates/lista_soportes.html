@@ -1,147 +1,75 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="card shadow-sm">
-    <div class="card-header bg-white py-3">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h4 class="mb-0 text-primary"><i class="fas fa-ticket-alt"></i> Gestión de Tickets</h4>
-            </div>
-            <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                <a href="{{ url_for('agregar') }}" class="btn btn-primary">
-                    <i class="fas fa-plus-circle"></i> Nuevo Ticket
-                </a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="card-body border-bottom bg-light">
-        <div class="row g-3">
-            <div class="col-md-12">
-                <div class="input-group">
-                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar por usuario, problema, ID...">
-                </div>
-            </div>
-        </div>
+<div class="card shadow h-100 border-0"> <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-list-alt"></i> Gestión de Tickets (Histórico Completo)</h5>
+        <a href="{{ url_for('agregar') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus-circle"></i> Nuevo Ticket
+        </a>
     </div>
 
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="ticketsTable">
-                <thead class="table-dark text-nowrap">
-                    <tr>
-                        <th scope="col" class="ps-3">ID</th>
-                        <th scope="col">Fecha</th>
-                        <th scope="col">Usuario</th>
-                        <th scope="col">Problema</th>
-                        <th scope="col">Prioridad</th>
-                        <th scope="col">Estado</th>
-                        <th scope="col">Técnico</th>
-                        <th scope="col" class="text-end pe-3">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for soporte in soportes %}
-                    <tr>
-                        <td class="ps-3 fw-bold">#{{ soporte.id }}</td>
-                        <td class="small text-muted">{{ soporte.fecha_creacion[:10] }}</td>
-                        
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-circle bg-secondary text-white me-2" style="width: 25px; height: 25px; font-size: 0.7rem; line-height: 25px;">
-                                    {{ soporte.nombre_usuario[0].upper() }}
-                                </div>
-                                <span class="fw-medium">{{ soporte.nombre_usuario }}</span>
-                            </div>
-                        </td>
-                        
-                        <td title="{{ soporte.problema }}">
-                            {{ soporte.problema[:40] }}{% if soporte.problema|length > 40 %}...{% endif %}
-                            <br>
-                            <small class="text-muted fst-italic">{{ soporte.categoria }}</small>
-                        </td>
-                        
-                        <td>
-                            {% if soporte.prioridad == 'Urgente' %}
-                                <span class="badge bg-danger"><i class="fas fa-fire"></i> Urgente</span>
-                            {% elif soporte.prioridad == 'Alta' %}
-                                <span class="badge bg-warning text-dark">Alta</span>
-                            {% else %}
-                                <span class="badge bg-info text-dark">{{ soporte.prioridad }}</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td>
-                            {% if soporte.estado == 'Abierto' %}
-                                <span class="badge rounded-pill bg-success">Abierto</span>
-                            {% elif soporte.estado == 'En Proceso' %}
-                                <span class="badge rounded-pill bg-primary">En Proceso</span>
-                            {% elif soporte.estado == 'Resuelto' %}
-                                <span class="badge rounded-pill bg-info text-dark">Resuelto</span>
-                            {% else %}
-                                <span class="badge rounded-pill bg-secondary">Cerrado</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td>
-                            {% if soporte.nombre_tecnico %}
-                                <small class="text-primary fw-bold">{{ soporte.nombre_tecnico }}</small>
-                            {% else %}
-                                <span class="badge bg-light text-muted border">Sin Asignar</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td class="text-end pe-3">
-                            {% if session['role'] in ['admin', 'tecnico'] or session['user_id'] == soporte.usuario_id %}
-                                <a href="{{ url_for('editar', ticket_id=soporte.id) }}" class="btn btn-sm btn-outline-primary" title="Editar / Ver Detalles">
-                                    <i class="fas fa-edit"></i> Editar
-                                </a>
-                            {% else %}
-                                <span class="text-muted small"><i class="fas fa-lock"></i></span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="8" class="text-center py-5">
-                            <div class="text-muted opacity-50">
-                                <i class="fas fa-folder-open fa-3x mb-3"></i>
-                                <p>No se encontraron tickets registrados.</p>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <div class="card-footer bg-white small text-muted">
-        Mostrando {{ soportes|length }} registros recientes.
+    <div class="card-body p-2">
+        <table class="table table-striped table-hover tabla-enterprise w-100 align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Problema</th>
+                    <th>Categoría</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th>Técnico</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for soporte in soportes %}
+                <tr>
+                    <td class="fw-bold text-secondary">#{{ soporte.id }}</td>
+                    
+                    <td data-order="{{ soporte.fecha_creacion }}">
+                        {{ soporte.fecha_creacion[:10] }}
+                    </td>
+                    
+                    <td>{{ soporte.nombre_usuario }}</td>
+                    
+                    <td title="{{ soporte.problema }}">
+                        <div style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {{ soporte.problema }}
+                        </div>
+                    </td>
+                    
+                    <td><span class="badge bg-light text-dark border">{{ soporte.categoria }}</span></td>
+                    
+                    <td>
+                        {% if soporte.prioridad == 'Urgente' %}<span class="badge bg-danger">Urgente</span>
+                        {% elif soporte.prioridad == 'Alta' %}<span class="badge bg-warning text-dark">Alta</span>
+                        {% else %}<span class="badge bg-info text-dark">{{ soporte.prioridad }}</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td>
+                        {% if soporte.estado == 'Abierto' %}<span class="badge bg-success">Abierto</span>
+                        {% elif soporte.estado == 'En Proceso' %}<span class="badge bg-primary">En Proceso</span>
+                        {% elif soporte.estado == 'Resuelto' %}<span class="badge bg-info">Resuelto</span>
+                        {% else %}<span class="badge bg-secondary">Cerrado</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td>{{ soporte.nombre_tecnico or '' }}</td>
+                    
+                    <td>
+                        {% if session['role'] in ['admin', 'tecnico'] or session['user_id'] == soporte.usuario_id %}
+                            <a href="{{ url_for('editar', ticket_id=soporte.id) }}" class="btn btn-outline-primary btn-sm" title="Ver/Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const table = document.getElementById('ticketsTable');
-    
-    if(searchInput && table) {
-        searchInput.addEventListener('keyup', function() {
-            const value = this.value.toLowerCase();
-            const rows = table.getElementsByTagName('tr');
-            
-            // Empezamos desde 1 para saltar el encabezado
-            for (let i = 1; i < rows.length; i++) {
-                const rowText = rows[i].textContent.toLowerCase();
-                if (rowText.indexOf(value) > -1) {
-                    rows[i].style.display = "";
-                } else {
-                    rows[i].style.display = "none";
-                }
-            }
-        });
-    }
-});
-</script>
 {% endblock %}
