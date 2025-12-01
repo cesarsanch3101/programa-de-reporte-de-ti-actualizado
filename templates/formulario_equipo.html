@@ -14,9 +14,9 @@
                     
                     <h5 class="text-primary border-bottom pb-2 mb-3">Información General</h5>
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Nombre del Equipo (Hostname)</label>
-                            <input type="text" name="nombre_equipo" class="form-control" value="{{ equipo.nombre_equipo if equipo else '' }}" required>
+                        <div class="col-md-4">
+                            <label class="form-label">Nombre del Equipo</label>
+                            <input type="text" name="nombre_equipo" class="form-control" value="{{ equipo.nombre_equipo if equipo else '' }}" required placeholder="Ej: LAPTOP-01">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Tipo</label>
@@ -27,6 +27,10 @@
                                 <option value="Impresora" {% if equipo and equipo.tipo == 'Impresora' %}selected{% endif %}>Impresora</option>
                             </select>
                         </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Color</label>
+                            <input type="text" name="color" class="form-control" value="{{ equipo.color if equipo else '' }}" placeholder="Ej: Gris Espacial">
+                        </div>
                         <div class="col-md-3">
                             <label class="form-label">Fecha de Compra</label>
                             <input type="date" name="fecha_compra" class="form-control" value="{{ equipo.fecha_compra if equipo else '' }}">
@@ -36,7 +40,7 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Marca y Modelo</label>
-                            <input type="text" name="marca_modelo" class="form-control" value="{{ equipo.marca_modelo if equipo else '' }}" placeholder="Ej: HP ProBook 450 G8">
+                            <input type="text" name="marca_modelo" class="form-control" value="{{ equipo.marca_modelo if equipo else '' }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Número de Serie</label>
@@ -47,14 +51,14 @@
                     <h5 class="text-primary border-bottom pb-2 mb-3 mt-4">Especificaciones de Hardware</h5>
                     <div class="row mb-3">
                         <div class="col-md-12 mb-3">
-                            <label class="form-label">Procesador (CPU)</label>
-                            <input type="text" name="procesador" class="form-control" value="{{ equipo.procesador if equipo else '' }}" placeholder="Ej: Intel Core i7-1165G7 @ 2.80GHz">
+                            <label class="form-label">Procesador</label>
+                            <input type="text" name="procesador" class="form-control" value="{{ equipo.procesador if equipo else '' }}">
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-3">
-                            <label class="form-label">Memoria RAM</label>
+                            <label class="form-label">Cant. Memoria RAM</label>
                             <input type="text" name="memoria_ram" class="form-control" value="{{ equipo.memoria_ram if equipo else '' }}" placeholder="Ej: 16 GB">
                         </div>
                         <div class="col-md-3">
@@ -67,7 +71,7 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Almacenamiento</label>
+                            <label class="form-label">Capacidad Disco</label>
                             <input type="text" name="disco_duro" class="form-control" value="{{ equipo.disco_duro if equipo else '' }}" placeholder="Ej: 512 GB">
                         </div>
                         <div class="col-md-3">
@@ -76,7 +80,7 @@
                                 <option value="">-- Seleccionar --</option>
                                 <option value="SSD NVMe" {% if equipo and equipo.tipo_disco == 'SSD NVMe' %}selected{% endif %}>SSD NVMe</option>
                                 <option value="SSD SATA" {% if equipo and equipo.tipo_disco == 'SSD SATA' %}selected{% endif %}>SSD SATA</option>
-                                <option value="HDD" {% if equipo and equipo.tipo_disco == 'HDD' %}selected{% endif %}>HDD (Mecánico)</option>
+                                <option value="HDD" {% if equipo and equipo.tipo_disco == 'HDD' %}selected{% endif %}>HDD</option>
                             </select>
                         </div>
                     </div>
@@ -96,7 +100,7 @@
 
                     <div class="d-flex justify-content-end gap-2">
                         <a href="{{ url_for('lista_equipos') }}" class="btn btn-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-primary">Guardar Ficha Técnica</button>
+                        <button type="submit" class="btn btn-primary">Guardar Ficha</button>
                     </div>
                 </form>
             </div>

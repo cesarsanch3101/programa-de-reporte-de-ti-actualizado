@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #fff3cd; }
+        .header { background-color: #ffc107; color: #333; padding: 15px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; background-color: white; }
+        .alert-box { background-color: #fff3cd; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba; margin: 15px 0; }
+        .footer { font-size: 12px; color: #777; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>📅 Cambio de Fecha en Mantenimiento</h2>
+        </div>
+        <div class="content">
+            <p>Hola <strong>{{ usuario }}</strong>,</p>
+            <p>Te informamos que ha habido un cambio en la programación del mantenimiento de tu equipo <strong>{{ equipo }}</strong>.</p>
+            
+            <div class="alert-box">
+                <p><strong>Tarea:</strong> {{ tarea }}</p>
+                <p><strong>Nueva Fecha:</strong> {{ nueva_fecha }}</p>
+                <p><strong>Motivo del Cambio:</strong><br><em>{{ motivo }}</em></p>
+            </div>
+            
+            <p>Lamentamos los inconvenientes. Gracias por tu comprensión.</p>
+        </div>
+        <div class="footer">
+            <p>Sistema de Gestión TI - Notificación Automática</p>
+        </div>
+    </div>
+</body>
+</html>

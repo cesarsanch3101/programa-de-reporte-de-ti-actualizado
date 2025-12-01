@@ -3,15 +3,26 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
 import sqlite3
 import os
+import math
 from datetime import datetime
+import pandas as pd
+import io
+from flask_weasyprint import HTML, render_pdf
 from flask_mail import Mail, Message
+from collections import defaultdict
+
+# --- Importaciones Locales ---
+from config import config_dict, CATEGORIAS, PRIORIDADES, ESTADOS, PER_PAGE
+from database_setup import crear_tablas
 
 # --- Configuración ---
-from config import config_dict
 config = config_dict['development']
 
 app = Flask(__name__)
 app.config.from_object(config)
+app.secret_key = 'clave-secreta-cambiar-en-produccion' # O usa config.SECRET_KEY
+
+# Inicializar Mail
 mail = Mail(app)
 
 # --- RUTA FAVICON ---
@@ -33,37 +44,41 @@ def close_db(exception):
     if db is not None:
         db.close()
 
-# --- LÓGICA DE CORREO DINÁMICA ---
-def get_mail_config_from_db():
-    db = get_db()
-    try:
-        rows = db.execute("SELECT clave, valor FROM configuracion WHERE clave LIKE 'MAIL_%'").fetchall()
-        conf = {row['clave']: row['valor'] for row in rows}
-        return conf
-    except:
-        return {}
+# --- FUNCION DE CORREO UNIFICADA (LA QUE SI FUNCIONA) ---
+def send_email(to, subject, template, **kwargs):
+    if not to: return
 
-def enviar_correo_notificacion(destinatario, asunto, template_html):
-    if not destinatario: return
-    db_config = get_mail_config_from_db()
+    db = get_db()
+    # Cargamos configuración de la DB
+    config_rows = db.execute("SELECT clave, valor FROM configuracion WHERE clave LIKE 'MAIL_%'").fetchall()
     
-    if db_config.get('MAIL_USERNAME') and db_config.get('MAIL_PASSWORD'):
-        app.config.update(
-            MAIL_SERVER=db_config.get('MAIL_SERVER', 'smtp.gmail.com'),
-            MAIL_PORT=int(db_config.get('MAIL_PORT', 587)),
-            MAIL_USE_TLS=db_config.get('MAIL_USE_TLS') == 'True',
-            MAIL_USERNAME=db_config.get('MAIL_USERNAME'),
-            MAIL_PASSWORD=db_config.get('MAIL_PASSWORD'),
-            MAIL_DEFAULT_SENDER=db_config.get('MAIL_USERNAME')
-        )
+    # Actualizamos la app con lo que haya en la DB
+    if config_rows:
+        config_dict_db = {row['clave']: row['valor'] for row in config_rows}
+        # Limpieza básica de espacios
+        for key, val in config_dict_db.items():
+            if isinstance(val, str):
+                config_dict_db[key] = val.strip()
+        
+        app.config.update(config_dict_db)
+        
+        # Ajuste de tipos
+        if 'MAIL_PORT' in app.config:
+            app.config['MAIL_PORT'] = int(app.config['MAIL_PORT'])
+        if 'MAIL_USE_TLS' in app.config:
+            app.config['MAIL_USE_TLS'] = str(app.config['MAIL_USE_TLS']).lower() == 'true'
+            
+        # IMPORTANTE: Re-inicializar mail con la nueva config
         mail_instance = Mail(app)
     else:
-        mail_instance = mail
+        mail_instance = mail # Usar config por defecto (.env)
 
     try:
-        msg = Message(asunto, recipients=[destinatario])
-        msg.html = template_html
+        msg = Message(subject, sender=app.config.get('MAIL_USERNAME'), recipients=[to])
+        # Renderizamos el template aquí mismo
+        msg.html = render_template(template, **kwargs)
         mail_instance.send(msg)
+        print(f"✅ Correo enviado a {to} | Asunto: {subject}")
     except Exception as e:
         print(f"⚠️ Error enviando correo: {e}")
 
@@ -71,14 +86,18 @@ def enviar_correo_notificacion(destinatario, asunto, template_html):
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session: return redirect(url_for('login'))
+        if 'user_id' not in session: 
+            flash('Por favor, inicia sesión.', 'warning')
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get('role') != 'admin': return redirect(url_for('dashboard'))
+        if session.get('role') != 'admin': 
+            flash('Acceso denegado.', 'danger')
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -92,11 +111,13 @@ def login():
         user = db.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
         if user and check_password_hash(user['password_hash'], password):
             session.clear()
-            session.update({'user_id': user['id'], 'username': user['username'], 'role': user['role']})
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
             db.execute("INSERT INTO auditoria_logs (usuario_id, accion) VALUES (?, 'LOGIN')", (user['id'],))
             db.commit()
             return redirect(url_for('dashboard'))
-        flash('❌ Usuario o contraseña incorrectos.', 'danger')
+        flash('Usuario o contraseña incorrectos.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -122,13 +143,13 @@ def dashboard():
     grafico_cat = {"labels": [r['categoria'] for r in cats_raw], "datos": [r['cantidad'] for r in cats_raw]}
     return render_template('dashboard.html', kpis=kpis, g_estado=grafico_estado, g_cat=grafico_cat)
 
-# --- TICKETS (CON FILTROS AVANZADOS) ---
+# --- TICKETS ---
 @app.route('/soportes')
 @login_required
 def lista_soportes():
     db = get_db()
     
-    # 1. Capturar filtros desde la URL (GET)
+    # Filtros
     f_inicio = request.args.get('fecha_inicio')
     f_fin = request.args.get('fecha_fin')
     f_categoria = request.args.get('categoria')
@@ -136,7 +157,6 @@ def lista_soportes():
     f_estado = request.args.get('estado')
     f_tecnico = request.args.get('tecnico_id')
 
-    # 2. Query Base
     query = """
         SELECT s.*, u.username as nombre_usuario, t.username as nombre_tecnico 
         FROM soportes s 
@@ -146,52 +166,32 @@ def lista_soportes():
     """
     params = []
     
-    # 3. Aplicar Filtros Dinámicamente
     if session['role'] == 'user':
         query += " AND s.usuario_id = ?"
         params.append(session['user_id'])
     
-    # Filtro de Fechas
     if f_inicio and f_fin:
-        # SQLite date() extrae la parte de fecha YYYY-MM-DD
         query += " AND date(s.fecha_creacion) BETWEEN ? AND ?"
         params.extend([f_inicio, f_fin])
-    
-    # Filtros de Selección (Ignorar si es 'Todos' o vacío)
     if f_categoria and f_categoria != 'Todos':
         query += " AND s.categoria = ?"
         params.append(f_categoria)
-
     if f_prioridad and f_prioridad != 'Todos':
         query += " AND s.prioridad = ?"
         params.append(f_prioridad)
-
     if f_estado and f_estado != 'Todos':
         query += " AND s.estado = ?"
         params.append(f_estado)
-
     if f_tecnico and f_tecnico != 'Todos':
         query += " AND s.tecnico_id = ?"
         params.append(f_tecnico)
     
-    # 4. Ordenamiento VIP (Abiertos primero, luego por fecha)
-    query += """
-        ORDER BY 
-            CASE WHEN s.estado IN ('Abierto', 'En Proceso') THEN 0 ELSE 1 END ASC,
-            s.fecha_creacion DESC
-    """
+    query += """ ORDER BY CASE WHEN s.estado IN ('Abierto', 'En Proceso') THEN 0 ELSE 1 END ASC, s.fecha_creacion DESC """
     
     tickets = db.execute(query, params).fetchall()
-    
-    # 5. Cargar datos para los dropdowns del filtro
     tecnicos = db.execute("SELECT id, username FROM usuarios WHERE role IN ('admin', 'tecnico')").fetchall()
     
-    return render_template('lista_soportes.html', 
-                           soportes=tickets, 
-                           tecnicos=tecnicos,
-                           categorias=config.CATEGORIAS,
-                           prioridades=config.PRIORIDADES,
-                           estados=config.ESTADOS)
+    return render_template('lista_soportes.html', soportes=tickets, tecnicos=tecnicos, categorias=CATEGORIAS, prioridades=PRIORIDADES, estados=ESTADOS)
 
 @app.route('/agregar', methods=['GET', 'POST'])
 @login_required
@@ -205,9 +205,17 @@ def agregar():
         db.commit()
         
         usuario_reporta = db.execute("SELECT email, username FROM usuarios WHERE id = ?", (usuario_reporta_id,)).fetchone()
+        
+        # Usamos la función UNIFICADA send_email
         if usuario_reporta and usuario_reporta['email']:
-            html_body = render_template('email_nuevo_ticket.html', usuario=usuario_reporta['username'], ticket_id=ticket_id, problema=request.form['problema'])
-            enviar_correo_notificacion(usuario_reporta['email'], f"Ticket #{ticket_id} Creado", html_body)
+            send_email(
+                to=usuario_reporta['email'], 
+                subject=f"Ticket #{ticket_id} Creado", 
+                template='email_nuevo_ticket.html', 
+                usuario=usuario_reporta['username'], 
+                ticket_id=ticket_id, 
+                problema=request.form['problema']
+            )
             flash(f'✅ Ticket creado y notificación enviada.', 'success')
         else:
             flash('✅ Ticket creado.', 'warning')
@@ -217,7 +225,7 @@ def agregar():
         usuarios = db.execute("SELECT id, username FROM usuarios ORDER BY username").fetchall()
     else:
         usuarios = [{"id": session['user_id'], "username": session['username']}]
-    return render_template('agregar.html', categorias=config.CATEGORIAS, prioridades=config.PRIORIDADES, usuarios=usuarios)
+    return render_template('agregar.html', categorias=CATEGORIAS, prioridades=PRIORIDADES, usuarios=usuarios)
 
 @app.route('/editar/<int:ticket_id>', methods=['GET', 'POST'])
 @login_required
@@ -232,18 +240,49 @@ def editar(ticket_id):
             if ticket['estado'] != 'Abierto': return redirect(url_for('editar', ticket_id=ticket_id))
             db.execute("UPDATE soportes SET problema=?, categoria=?, prioridad=? WHERE id=?",
                        (request.form['problema'], request.form['categoria'], request.form['prioridad'], ticket_id))
+            db.commit()
+            flash('Ticket actualizado.', 'success')
         else:
-            estado, solucion, tecnico_id = request.form.get('estado'), request.form.get('solucion'), request.form.get('tecnico_id')
-            if estado in ['Resuelto', 'Cerrado'] and not solucion:
-                flash('⚠️ Documenta la solución.', 'warning')
-                return redirect(url_for('editar', ticket_id=ticket_id))
-            db.execute("UPDATE soportes SET estado=?, tecnico_id=?, solucion=? WHERE id=?",
-                       (estado, tecnico_id if tecnico_id else None, solucion, ticket_id))
-        db.commit()
+            estado_nuevo = request.form.get('estado')
+            solucion = request.form.get('solucion')
+            tecnico_id = request.form.get('tecnico_id')
+            
+            if estado_nuevo in ['Resuelto', 'Cerrado'] and not solucion:
+                flash('⚠️ Para cerrar el ticket, debes documentar la solución.', 'warning')
+                tecnicos = db.execute("SELECT id, username FROM usuarios WHERE role IN ('admin', 'tecnico')").fetchall()
+                return render_template('editar.html', ticket=ticket, tecnicos=tecnicos, estados=ESTADOS, categorias=CATEGORIAS, prioridades=PRIORIDADES)
+            
+            fecha_finalizacion = datetime.now().strftime("%Y-%m-%d %H:%M:%S") if estado_nuevo in ['Resuelto', 'Cerrado'] else None
+            
+            db.execute("UPDATE soportes SET estado=?, tecnico_id=?, solucion=?, fecha_finalizacion=? WHERE id=?",
+                       (estado_nuevo, tecnico_id if tecnico_id else None, solucion, fecha_finalizacion, ticket_id))
+            db.commit()
+            
+            # Notificación de cierre
+            if estado_nuevo in ['Resuelto', 'Cerrado'] and ticket['estado'] not in ['Resuelto', 'Cerrado']:
+                usuario_dueno = db.execute("SELECT email, username FROM usuarios WHERE id = ?", (ticket['usuario_id'],)).fetchone()
+                
+                if usuario_dueno and usuario_dueno['email']:
+                    send_email(
+                        to=usuario_dueno['email'], 
+                        subject=f"✅ Ticket #{ticket_id} Finalizado", 
+                        template='email_cierre_ticket.html',
+                        usuario=usuario_dueno['username'],
+                        ticket_id=ticket_id,
+                        problema=ticket['problema'],
+                        solucion=solucion,
+                        tecnico=session['username']
+                    )
+                    flash(f'Ticket cerrado y notificación enviada.', 'success')
+                else:
+                    flash('Ticket cerrado.', 'success')
+            else:
+                flash('Gestión actualizada.', 'success')
+
         return redirect(url_for('lista_soportes'))
 
     tecnicos = db.execute("SELECT id, username FROM usuarios WHERE role IN ('admin', 'tecnico')").fetchall()
-    return render_template('editar.html', ticket=ticket, tecnicos=tecnicos, estados=config.ESTADOS, categorias=config.CATEGORIAS, prioridades=config.PRIORIDADES)
+    return render_template('editar.html', ticket=ticket, tecnicos=tecnicos, estados=ESTADOS, categorias=CATEGORIAS, prioridades=PRIORIDADES)
 
 @app.route('/soportes/eliminar/<int:ticket_id>', methods=['POST'])
 @admin_required
@@ -258,45 +297,24 @@ def eliminar_soporte(ticket_id):
 @app.route('/equipos')
 @login_required
 def lista_equipos():
-    # Obtener equipos con usuario asignado
     equipos = get_db().execute("""
         SELECT e.*, u.username as usuario_asignado 
         FROM equipos e 
         LEFT JOIN usuarios u ON e.usuario_asignado_id = u.id 
         ORDER BY e.nombre_equipo
     """).fetchall()
-    
-    # Listas para filtros del reporte
     tipos = get_db().execute("SELECT DISTINCT tipo FROM equipos WHERE tipo IS NOT NULL").fetchall()
-    
     return render_template('lista_equipos.html', equipos=equipos, tipos=tipos)
 
-# NUEVA RUTA: VER FICHA TÉCNICA
 @app.route('/equipos/ver/<int:equipo_id>')
 @login_required
 def ver_equipo(equipo_id):
     db = get_db()
-    equipo = db.execute("""
-        SELECT e.*, u.username as usuario_asignado, u.departamento 
-        FROM equipos e 
-        LEFT JOIN usuarios u ON e.usuario_asignado_id = u.id 
-        WHERE e.id = ?
-    """, (equipo_id,)).fetchone()
-    
+    equipo = db.execute("SELECT e.*, u.username as usuario_asignado, u.departamento FROM equipos e LEFT JOIN usuarios u ON e.usuario_asignado_id = u.id WHERE e.id = ?", (equipo_id,)).fetchone()
     if not equipo:
         flash('Equipo no encontrado.', 'danger')
         return redirect(url_for('lista_equipos'))
-        
-    # Obtener historial de mantenimiento de este equipo
-    historial = db.execute("""
-        SELECT * FROM mantenimientos 
-        WHERE equipo_id = ? 
-        ORDER BY fecha_programada DESC
-    """, (equipo_id,)).fetchall()
-    
-    # Obtener historial de tickets de este equipo (si implementamos la relación en tickets)
-    # Por ahora solo mantenimientos
-    
+    historial = db.execute("SELECT * FROM mantenimientos WHERE equipo_id = ? ORDER BY fecha_programada DESC", (equipo_id,)).fetchall()
     return render_template('ver_equipo.html', equipo=equipo, historial=historial)
 
 @app.route('/equipos/gestion', methods=['GET', 'POST'])
@@ -305,18 +323,49 @@ def ver_equipo(equipo_id):
 def gestion_equipo(equipo_id=None):
     db = get_db()
     equipo = db.execute("SELECT * FROM equipos WHERE id = ?", (equipo_id,)).fetchone() if equipo_id else None
+
     if request.method == 'POST':
-        data = (request.form['nombre_equipo'], request.form['tipo'], request.form['marca_modelo'], request.form['numero_serie'], request.form['procesador'], request.form['memoria_ram'], request.form['tipo_ram'], request.form['disco_duro'], request.form['tipo_disco'], request.form['fecha_compra'], request.form.get('usuario_asignado_id') or None)
+        data = (
+            request.form['nombre_equipo'], 
+            request.form['tipo'], 
+            request.form['marca_modelo'], 
+            request.form['numero_serie'], 
+            request.form['procesador'], 
+            request.form['memoria_ram'], 
+            request.form['tipo_ram'], 
+            request.form['disco_duro'], 
+            request.form['tipo_disco'], 
+            request.form['fecha_compra'], 
+            request.form['color'],        
+            request.form.get('usuario_asignado_id') or None
+        )
+        
         try:
             if equipo_id:
-                db.execute("UPDATE equipos SET nombre_equipo=?, tipo=?, marca_modelo=?, numero_serie=?, procesador=?, memoria_ram=?, tipo_ram=?, disco_duro=?, tipo_disco=?, fecha_compra=?, usuario_asignado_id=? WHERE id=?", data + (equipo_id,))
-                flash('Equipo actualizado.', 'success')
+                db.execute("""
+                    UPDATE equipos SET 
+                        nombre_equipo=?, tipo=?, marca_modelo=?, numero_serie=?,
+                        procesador=?, memoria_ram=?, tipo_ram=?, disco_duro=?, tipo_disco=?, fecha_compra=?,
+                        color=?, usuario_asignado_id=? 
+                    WHERE id=?
+                """, data + (equipo_id,))
+                flash('Equipo actualizado correctamente.', 'success')
             else:
-                db.execute("INSERT INTO equipos (nombre_equipo, tipo, marca_modelo, numero_serie, procesador, memoria_ram, tipo_ram, disco_duro, tipo_disco, fecha_compra, usuario_asignado_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", data)
-                flash('Equipo registrado.', 'success')
+                db.execute("""
+                    INSERT INTO equipos (
+                        nombre_equipo, tipo, marca_modelo, numero_serie,
+                        procesador, memoria_ram, tipo_ram, disco_duro, tipo_disco, fecha_compra,
+                        color, usuario_asignado_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, data)
+                flash('Equipo registrado correctamente.', 'success')
+            
             db.commit()
             return redirect(url_for('lista_equipos'))
-        except sqlite3.IntegrityError: flash('Error: Duplicado.', 'danger')
+            
+        except sqlite3.IntegrityError:
+            flash('Error: El nombre del equipo o serie ya existe.', 'danger')
+
     usuarios = db.execute("SELECT id, username FROM usuarios").fetchall()
     return render_template('formulario_equipo.html', equipo=equipo, usuarios=usuarios)
 
@@ -327,19 +376,16 @@ def eliminar_equipo(equipo_id):
     get_db().commit()
     return redirect(url_for('lista_equipos'))
 
-# --- MANTENIMIENTOS (CON FILTROS DE REPORTE) ---
+# --- MANTENIMIENTOS (USANDO SEND_EMAIL UNIFICADO) ---
 @app.route('/mantenimientos')
 @login_required
 def lista_mantenimientos():
     db = get_db()
-    
-    # 1. Capturar filtros
     f_inicio = request.args.get('fecha_inicio')
     f_fin = request.args.get('fecha_fin')
     f_estado = request.args.get('estado')
     f_equipo = request.args.get('equipo_id')
 
-    # 2. Query Base
     query = """
         SELECT m.*, e.nombre_equipo, u.username as tecnico 
         FROM mantenimientos m 
@@ -348,31 +394,21 @@ def lista_mantenimientos():
         WHERE 1=1
     """
     params = []
-
-    # 3. Aplicar Filtros
     if f_inicio and f_fin:
         query += " AND m.fecha_programada BETWEEN ? AND ?"
         params.extend([f_inicio, f_fin])
-    
     if f_estado and f_estado != 'Todos':
         query += " AND m.estado = ?"
         params.append(f_estado)
-
     if f_equipo and f_equipo != 'Todos':
         query += " AND m.equipo_id = ?"
         params.append(f_equipo)
-
-    # Ordenar por fecha
     query += " ORDER BY m.fecha_programada ASC"
 
     mantenimientos = db.execute(query, params).fetchall()
-    
-    # Listas para los filtros
     equipos = db.execute("SELECT id, nombre_equipo FROM equipos ORDER BY nombre_equipo").fetchall()
-    
-    return render_template('mantenimientos.html', 
-                           mantenimientos=mantenimientos, 
-                           equipos=equipos) 
+    return render_template('mantenimientos.html', mantenimientos=mantenimientos, equipos=equipos)
+
 @app.route('/calendario')
 @login_required
 def ver_calendario():
@@ -390,24 +426,117 @@ def api_eventos():
         eventos.append({'id': ev['id'], 'title': f"{ev['nombre_equipo']}: {ev['titulo']}", 'start': ev['fecha_programada'], 'color': color, 'textColor': text_color, 'url': url_for('lista_mantenimientos')})
     return jsonify(eventos)
 
-@app.route('/api/mantenimientos/mover', methods=['POST'])
-@admin_required
-def mover_mantenimiento():
-    data = request.get_json()
-    get_db().execute("UPDATE mantenimientos SET fecha_programada = ?, motivo_reprogramacion = ? WHERE id = ?", (data.get('nueva_fecha'), data.get('motivo'), data.get('id')))
-    get_db().commit()
-    return jsonify({'status': 'success'})
-
 @app.route('/mantenimientos/programar', methods=['GET', 'POST'])
 @login_required
 def programar_mantenimiento():
     if session['role'] == 'user': return redirect(url_for('dashboard'))
+    
+    db = get_db()
     if request.method == 'POST':
-        get_db().execute("INSERT INTO mantenimientos (equipo_id, titulo, fecha_programada, estado) VALUES (?, ?, ?, 'Pendiente')", (request.form['equipo_id'], request.form['titulo'], request.form['fecha_programada']))
-        get_db().commit()
+        equipo_id = request.form['equipo_id']
+        titulo = request.form['titulo']
+        fecha = request.form['fecha_programada']
+        
+        db.execute("INSERT INTO mantenimientos (equipo_id, titulo, fecha_programada, estado) VALUES (?, ?, ?, 'Pendiente')",
+                   (equipo_id, titulo, fecha))
+        db.commit()
+        
+        # Notificar usando send_email
+        datos = db.execute("SELECT u.email, u.username, e.nombre_equipo FROM equipos e JOIN usuarios u ON e.usuario_asignado_id = u.id WHERE e.id = ?", (equipo_id,)).fetchone()
+        
+        if datos and datos['email']:
+            send_email(
+                to=datos['email'],
+                subject="🔧 Mantenimiento Programado",
+                template='email_mantenimiento_nuevo.html', 
+                usuario=datos['username'], 
+                equipo=datos['nombre_equipo'], 
+                tarea=titulo, 
+                fecha=fecha
+            )
+            flash('Mantenimiento programado y notificación enviada.', 'success')
+        else:
+            flash('Mantenimiento programado.', 'success')
+            
         return redirect(url_for('lista_mantenimientos'))
-    equipos = get_db().execute("SELECT id, nombre_equipo FROM equipos").fetchall()
+    
+    equipos = db.execute("SELECT id, nombre_equipo FROM equipos").fetchall()
     return render_template('formulario_mantenimiento.html', equipos=equipos)
+
+@app.route('/mantenimientos/reprogramar/<int:mant_id>', methods=['POST'])
+@login_required
+def reprogramar_mantenimiento(mant_id):
+    if session['role'] == 'user': return redirect(url_for('dashboard'))
+    
+    nueva_fecha = request.form['nueva_fecha']
+    motivo = request.form['motivo']
+    
+    db = get_db()
+    db.execute("UPDATE mantenimientos SET fecha_programada = ?, motivo_reprogramacion = ? WHERE id = ?", 
+               (nueva_fecha, motivo, mant_id))
+    db.commit()
+    
+    # Notificar usando send_email
+    datos = db.execute("""
+        SELECT u.email, u.username, e.nombre_equipo, m.titulo 
+        FROM mantenimientos m
+        JOIN equipos e ON m.equipo_id = e.id
+        JOIN usuarios u ON e.usuario_asignado_id = u.id
+        WHERE m.id = ?
+    """, (mant_id,)).fetchone()
+    
+    if datos and datos['email']:
+        send_email(
+            to=datos['email'],
+            subject="📅 Cambio en Mantenimiento",
+            template='email_mantenimiento_cambio.html',
+            usuario=datos['username'], 
+            equipo=datos['nombre_equipo'], 
+            tarea=datos['titulo'], 
+            nueva_fecha=nueva_fecha,
+            motivo=motivo
+        )
+        flash('Reprogramado y notificado.', 'success')
+    else:
+        flash('Reprogramado.', 'success')
+        
+    return redirect(url_for('lista_mantenimientos'))
+
+@app.route('/api/mantenimientos/mover', methods=['POST'])
+@admin_required
+def mover_mantenimiento():
+    data = request.get_json()
+    mant_id = data.get('id')
+    nueva_fecha = data.get('nueva_fecha')
+    motivo = data.get('motivo')
+    
+    db = get_db()
+    db.execute("UPDATE mantenimientos SET fecha_programada = ?, motivo_reprogramacion = ? WHERE id = ?", 
+               (nueva_fecha, motivo, mant_id))
+    db.commit()
+    
+    # Notificar usando send_email (sin flash porque es API)
+    datos = db.execute("""
+        SELECT u.email, u.username, e.nombre_equipo, m.titulo 
+        FROM mantenimientos m
+        JOIN equipos e ON m.equipo_id = e.id
+        JOIN usuarios u ON e.usuario_asignado_id = u.id
+        WHERE m.id = ?
+    """, (mant_id,)).fetchone()
+    
+    if datos and datos['email']:
+        send_email(
+            to=datos['email'],
+            subject="📅 Cambio en Mantenimiento",
+            template='email_mantenimiento_cambio.html',
+            usuario=datos['username'], 
+            equipo=datos['nombre_equipo'], 
+            tarea=datos['titulo'], 
+            nueva_fecha=nueva_fecha,
+            motivo=motivo
+        )
+    
+    return jsonify({'status': 'success'})
 
 @app.route('/mantenimientos/completar/<int:mant_id>', methods=['POST'])
 @login_required
@@ -415,15 +544,6 @@ def completar_mantenimiento(mant_id):
     if session['role'] == 'user': return redirect(url_for('dashboard'))
     get_db().execute("UPDATE mantenimientos SET estado = 'Realizado', tecnico_asignado_id = ? WHERE id = ?", (session['user_id'], mant_id))
     get_db().commit()
-    return redirect(url_for('lista_mantenimientos'))
-
-@app.route('/mantenimientos/reprogramar/<int:mant_id>', methods=['POST'])
-@login_required
-def reprogramar_mantenimiento(mant_id):
-    if session['role'] == 'user': return redirect(url_for('dashboard'))
-    get_db().execute("UPDATE mantenimientos SET fecha_programada = ?, motivo_reprogramacion = ? WHERE id = ?", (request.form['nueva_fecha'], request.form['motivo'], mant_id))
-    get_db().commit()
-    flash('Reprogramado.', 'success')
     return redirect(url_for('lista_mantenimientos'))
 
 @app.route('/mantenimientos/eliminar/<int:mant_id>', methods=['POST'])
@@ -442,6 +562,7 @@ def admin_config_email():
         campos = ['MAIL_SERVER', 'MAIL_PORT', 'MAIL_USE_TLS', 'MAIL_USERNAME', 'MAIL_PASSWORD']
         for campo in campos:
             valor = request.form.get(campo)
+            if valor: valor = valor.strip() # Limpieza obligatoria
             if campo == 'MAIL_USE_TLS': valor = 'True' if valor else 'False'
             db.execute("INSERT OR REPLACE INTO configuracion (clave, valor) VALUES (?, ?)", (campo, valor))
         db.commit()
