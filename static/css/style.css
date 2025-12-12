@@ -64,3 +64,27 @@ table.dataTable thead th {
     top: 0;
     z-index: 10;
 }
+/* --- MARCA DE AGUA (LOGO DE FONDO) --- */
+body::before {
+    content: "";
+    position: fixed; /* Se queda quieto al hacer scroll */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    /* Ruta a tu logo (la .. sube de carpeta 'css' a 'static', luego entra a 'img') */
+    background-image: url('../img/logo.png'); 
+    
+    /* Configuración de la imagen */
+    background-repeat: no-repeat;
+    background-position: center center; /* Centrado perfecto */
+    background-size: 500px; /* Tamaño del logo (ajústalo si lo quieres más grande/chico) */
+    
+    /* MAGIA: Opacidad y Posición */
+    opacity: 0.05; /* 0.05 es 5% visible (muy sutil). Sube a 0.1 si lo quieres más fuerte */
+    z-index: -1;   /* Lo envía al fondo, detrás de todo */
+    
+    /* Evita que el logo capture clics */
+    pointer-events: none; 
+}

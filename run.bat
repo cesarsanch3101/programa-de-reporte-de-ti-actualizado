@@ -1,18 +1,15 @@
 @echo off
+TITLE Sistema de Soportes TI
+ECHO Iniciando el Sistema de Soportes...
+ECHO.
 
-:: 1. Activar el entorno virtual.
-echo Activando entorno virtual de Python 3.12...
-call .\.venv\Scripts\activate
+REM --- Instalar dependencias si faltan ---
+ECHO Verificando e instalando dependencias necesarias...
+pip install -r requirements.txt
+ECHO.
 
-:: 2. Verificar la version de Python (opcional, pero util para depurar).
-echo.
-echo Version de Python activa:
-python --version
-echo.
+REM --- Ejecutar la aplicación ---
+python app.py
 
-:: 3. Ejecutar el servidor con el Python del entorno.
-echo Iniciando el servidor de soportes...
-python -m waitress --host=0.0.0.0 --port=8080 app:app
-
-:: 4. Pausar para ver errores si el servidor falla.
-pause
+REM --- Mantener ventana abierta si hay error ---
+PAUSE
