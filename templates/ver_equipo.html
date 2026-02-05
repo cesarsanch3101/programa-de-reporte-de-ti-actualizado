@@ -11,102 +11,116 @@
 </div>
 
 <div class="card shadow-lg border-0 mx-auto ficha-tecnica" style="max-width: 850px;">
-    <div class="card-body p-5">
+    <div class="card-body p-4">
         
-        <div class="row border-bottom pb-4 mb-4 align-items-center">
+        <div class="row border-bottom pb-3 mb-3 align-items-center">
             <div class="col-8">
-                <h2 class="fw-bold text-uppercase mb-0">Ficha Técnica de Activo</h2>
-                <p class="text-muted mb-0">ID Sistema: #{{ equipo.id }} | Fecha Impresión: <script>document.write(new Date().toLocaleDateString())</script></p>
+                <h2 class="fw-bold text-uppercase mb-0 fs-4">Ficha Técnica de Activo</h2>
+                <p class="text-muted mb-0 small">ID Sistema: #{{ equipo.id }} | Fecha: <script>document.write(new Date().toLocaleDateString())</script></p>
             </div>
             <div class="col-4 text-end">
-                <div class="display-6 fw-bold text-primary">{{ equipo.nombre_equipo }}</div>
+                <div class="fw-bold text-primary fs-5">{{ equipo.nombre_equipo }}</div>
                 <span class="badge bg-dark">{{ equipo.tipo }}</span>
             </div>
         </div>
 
-        <h5 class="text-uppercase text-secondary border-bottom pb-2 mb-3">1. Información del Equipo</h5>
-        <div class="row mb-4">
+        <h6 class="text-uppercase text-secondary border-bottom pb-1 mb-2 fw-bold small">1. Información del Equipo</h6>
+        <div class="row mb-3">
             <div class="col-md-6">
-                <table class="table table-sm table-borderless">
+                <table class="table table-sm table-borderless small mb-0">
                     <tr><td class="fw-bold" width="40%">Marca/Modelo:</td><td>{{ equipo.marca_modelo }}</td></tr>
-                    <tr><td class="fw-bold">Color:</td><td>{{ equipo.color or '--' }}</td></tr> <tr><td class="fw-bold">Número de Serie:</td><td class="font-monospace">{{ equipo.numero_serie or 'N/A' }}</td></tr>
+                    <tr><td class="fw-bold">Color:</td><td>{{ equipo.color or '--' }}</td></tr>
+                    <tr><td class="fw-bold">Número de Serie:</td><td class="font-monospace">{{ equipo.numero_serie or 'N/A' }}</td></tr>
                     <tr><td class="fw-bold">Fecha Compra:</td><td>{{ equipo.fecha_compra or 'Desconocida' }}</td></tr>
                 </table>
             </div>
             <div class="col-md-6">
-                <div class="p-3 bg-light rounded border">
-                    <h6 class="fw-bold mb-2">Asignación Actual</h6>
+                <div class="p-2 bg-light rounded border">
+                    <h6 class="fw-bold mb-1 small">Asignación Actual</h6>
                     {% if equipo.usuario_asignado %}
-                        <p class="mb-1"><i class="fas fa-user"></i> <strong>{{ equipo.usuario_asignado }}</strong></p>
-                        <p class="mb-0 small text-muted">{{ equipo.departamento or 'Departamento General' }}</p>
+                        <p class="mb-0 small"><i class="fas fa-user"></i> <strong>{{ equipo.usuario_asignado }}</strong></p>
+                        <p class="mb-0 small text-muted">{{ equipo.departamento or 'General' }}</p>
                     {% else %}
-                        <p class="text-success mb-0"><i class="fas fa-box"></i> Disponible en Stock</p>
+                        <p class="text-success mb-0 small"><i class="fas fa-box"></i> Disponible en Stock</p>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <h5 class="text-uppercase text-secondary border-bottom pb-2 mb-3">2. Especificaciones Técnicas</h5>
-        <div class="row mb-4">
-            <div class="col-md-4 mb-3">
+        <h6 class="text-uppercase text-secondary border-bottom pb-1 mb-2 fw-bold small">2. Especificaciones Técnicas</h6>
+        <div class="row mb-3">
+            <div class="col-md-4 mb-2">
                 <div class="card h-100 bg-light border-0">
-                    <div class="card-body text-center">
-                        <i class="fas fa-microchip fa-2x text-secondary mb-2"></i>
-                        <h6 class="card-title fw-bold">Procesador</h6>
-                        <p class="card-text small">{{ equipo.procesador or '--' }}</p>
+                    <div class="card-body text-center p-2">
+                        <i class="fas fa-microchip fa-lg text-secondary mb-1"></i>
+                        <h6 class="card-title fw-bold small mb-0">Procesador</h6>
+                        <p class="card-text small mb-0">{{ equipo.procesador or '--' }}</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-4 mb-2">
                 <div class="card h-100 bg-light border-0">
-                    <div class="card-body text-center">
-                        <i class="fas fa-memory fa-2x text-secondary mb-2"></i>
-                        <h6 class="card-title fw-bold">Memoria RAM</h6>
-                        <p class="card-text small">{{ equipo.memoria_ram or '--' }} <br> {{ equipo.tipo_ram or '' }}</p>
+                    <div class="card-body text-center p-2">
+                        <i class="fas fa-memory fa-lg text-secondary mb-1"></i>
+                        <h6 class="card-title fw-bold small mb-0">RAM</h6>
+                        <p class="card-text small mb-0">{{ equipo.memoria_ram or '--' }} {{ equipo.tipo_ram or '' }}</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-4 mb-2">
                 <div class="card h-100 bg-light border-0">
-                    <div class="card-body text-center">
-                        <i class="fas fa-hdd fa-2x text-secondary mb-2"></i>
-                        <h6 class="card-title fw-bold">Almacenamiento</h6>
-                        <p class="card-text small">{{ equipo.disco_duro or '--' }} <br> {{ equipo.tipo_disco or '' }}</p>
+                    <div class="card-body text-center p-2">
+                        <i class="fas fa-hdd fa-lg text-secondary mb-1"></i>
+                        <h6 class="card-title fw-bold small mb-0">Disco</h6>
+                        <p class="card-text small mb-0">{{ equipo.disco_duro or '--' }} {{ equipo.tipo_disco or '' }}</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <h5 class="text-uppercase text-secondary border-bottom pb-2 mb-3">3. Historial de Mantenimientos</h5>
-        <table class="table table-bordered table-sm small">
+        <h6 class="text-uppercase text-secondary border-bottom pb-1 mb-2 fw-bold small">3. Mantenimientos Recientes</h6>
+        <table class="table table-bordered table-sm small mb-3">
             <thead class="table-light">
                 <tr>
                     <th>Fecha</th>
-                    <th>Tarea Realizada</th>
+                    <th>Tarea</th>
                     <th>Estado</th>
-                    <th>Técnico</th>
                 </tr>
             </thead>
             <tbody>
-                {% for mant in historial %}
+                {% for mant in historial[:3] %}
                 <tr>
                     <td>{{ mant.fecha_programada }}</td>
-                    <td>{{ mant.titulo }}</td>
+                    <td class="text-truncate" style="max-width: 200px;">{{ mant.titulo }}</td>
                     <td>{{ mant.estado }}</td>
-                    <td>{{ mant.tecnico_asignado_id or '--' }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="4" class="text-center text-muted">Sin mantenimientos registrados</td></tr>
+                <tr><td colspan="3" class="text-center text-muted">Sin mantenimientos registrados</td></tr>
                 {% endfor %}
             </tbody>
         </table>
 
-        <div class="row mt-5 pt-5 d-none d-print-flex">
-            <div class="col-6 text-center">
-                <div class="border-top border-dark w-75 mx-auto pt-2">Firma Responsable TI</div>
+        <div class="row mt-4 pt-2 d-none d-print-flex page-footer">
+            <div class="col-12 mb-3">
+                <p class="small text-muted text-justify" style="font-size: 0.8rem; line-height: 1.2;">
+                    Al firmar, el usuario confirma la recepción del equipo en buenas condiciones y acepta la responsabilidad de su uso adecuado según las políticas de la empresa.
+                </p>
             </div>
+
             <div class="col-6 text-center">
-                <div class="border-top border-dark w-75 mx-auto pt-2">Firma Usuario Asignado</div>
+                <div style="height: 40px;"></div> <div class="border-top border-dark w-75 mx-auto pt-1">
+                    <strong class="small">Entregado por:</strong><br>
+                    <span class="small">Departamento de TI</span><br>
+                    <span class="small text-muted" style="font-size: 0.7rem;">Fecha: <script>document.write(new Date().toLocaleDateString())</script></span>
+                </div>
+            </div>
+
+            <div class="col-6 text-center">
+                <div style="height: 40px;"></div> <div class="border-top border-dark w-75 mx-auto pt-1">
+                    <strong class="small">Recibido por:</strong><br>
+                    <span class="small">{{ equipo.usuario_asignado or '____________________' }}</span><br>
+                    <span class="small text-muted" style="font-size: 0.7rem;">ID: __________________</span>
+                </div>
             </div>
         </div>
 
@@ -115,24 +129,67 @@
 
 <style>
 @media print {
+    @page {
+        size: A4;
+        margin: 10mm; /* Márgenes estrechos para aprovechar la hoja */
+    }
+    html, body {
+        height: 100%;
+        margin: 0; 
+        padding: 0;
+    }
+    
+    /* Ocultar elementos innecesarios */
     body * {
-        visibility: hidden; /* Oculta todo */
+        visibility: hidden;
+        height: 0;
+        overflow: hidden;
     }
+    
+    /* Mostrar solo la ficha */
     .ficha-tecnica, .ficha-tecnica * {
-        visibility: visible; /* Muestra solo la ficha */
+        visibility: visible;
+        height: auto;
+        overflow: visible;
     }
+
+    /* Posicionar la ficha ocupando todo el ancho */
     .ficha-tecnica {
         position: absolute;
         left: 0;
         top: 0;
-        width: 100%;
-        box-shadow: none !important; /* Quita sombras */
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
         border: none !important;
+        box-shadow: none !important;
     }
+
+    /* Ajustes finos para compactar verticalmente */
+    .card-body {
+        padding: 0 !important; /* Quitar padding del contenedor */
+    }
+    
+    /* Reducir tamaño de fuente general para impresión */
+    body {
+        font-size: 10pt;
+    }
+    h2, .fs-4 { font-size: 14pt !important; }
+    h6, .fs-5 { font-size: 11pt !important; }
+    .small { font-size: 9pt !important; }
+
+    /* Ajustar espacios verticales */
+    .mb-3 { margin-bottom: 0.5rem !important; }
+    .pb-3 { padding-bottom: 0.5rem !important; }
+    
+    /* Mostrar sección de firmas (flex) */
     .d-print-flex {
-        display: flex !important; /* Muestra las firmas */
+        display: flex !important;
+        margin-top: 1.5cm !important; /* Separación fija para firmas */
     }
-    /* Asegura que los fondos se impriman (badges, cards grises) */
+
+    /* Colores de fondo forzados */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
