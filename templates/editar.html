@@ -4,52 +4,56 @@
 <div class="container mt-4">
     <div class="card shadow-lg border-0">
         <div class="card-header text-white d-flex justify-content-between align-items-center
-            {% if ticket.estado == 'Abierto' %}bg-success
-            {% elif ticket.estado == 'En Proceso' %}bg-primary
+            {% if ticket.estado.value == 'Abierto' %}bg-success
+            {% elif ticket.estado.value == 'En Proceso' %}bg-primary
             {% else %}bg-secondary{% endif %}">
-            
+
             <h4 class="mb-0">
                 <i class="fas fa-ticket-alt"></i> Ticket #{{ ticket.id }}
             </h4>
-            <span class="badge bg-light text-dark fw-bold">{{ ticket.estado }}</span>
+            <span class="badge bg-light text-dark fw-bold">{{ ticket.estado.value }}</span>
         </div>
 
         <div class="card-body">
-            
+
             {% if session['role'] == 'user' and ticket.estado != 'Abierto' %}
             <div class="alert alert-warning">
-                <i class="fas fa-lock"></i> Este ticket está siendo atendido o ya finalizó. Solo puedes visualizar la información.
+                <i class="fas fa-lock"></i> Este ticket está siendo atendido o ya finalizó. Solo puedes visualizar la
+                información.
             </div>
             {% endif %}
 
             <form method="POST">
-                
+
                 <h5 class="text-muted border-bottom pb-2 mb-3">📝 Detalles del Reporte</h5>
-                
+
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Categoría</label>
                         {% if session['role'] == 'user' and ticket.estado == 'Abierto' %}
-                            <select name="categoria" class="form-select">
-                                {% for cat in categorias %}
-                                <option value="{{ cat }}" {% if ticket.categoria == cat %}selected{% endif %}>{{ cat }}</option>
-                                {% endfor %}
-                            </select>
+                        <select name="categoria" class="form-select">
+                            {% for cat in categorias %}
+                            <option value="{{ cat }}" {% if ticket.categoria==cat %}selected{% endif %}>{{ cat }}
+                            </option>
+                            {% endfor %}
+                        </select>
                         {% else %}
-                            <input type="text" class="form-control" value="{{ ticket.categoria }}" disabled>
+                        <input type="text" class="form-control" value="{{ ticket.categoria }}" disabled>
                         {% endif %}
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Prioridad</label>
                         {% if session['role'] == 'user' and ticket.estado == 'Abierto' %}
-                            <select name="prioridad" class="form-select">
-                                {% for prio in prioridades %}
-                                <option value="{{ prio }}" {% if ticket.prioridad == prio %}selected{% endif %}>{{ prio }}</option>
-                                {% endfor %}
-                            </select>
+                        <select name="prioridad" class="select-form">
+                            {% for prio in prioridades %}
+                            <option value="{{ prio }}" {% if ticket.prioridad.value==prio %}selected{% endif %}>{{ prio
+                                }}
+                            </option>
+                            {% endfor %}
+                        </select>
                         {% else %}
-                            <input type="text" class="form-control" value="{{ ticket.prioridad }}" disabled>
+                        <input type="text" class="form-control" value="{{ ticket.prioridad.value }}" disabled>
                         {% endif %}
                     </div>
                 </div>
@@ -57,47 +61,52 @@
                 <div class="mb-4">
                     <label class="form-label fw-bold">Descripción del Problema</label>
                     {% if session['role'] == 'user' and ticket.estado == 'Abierto' %}
-                        <textarea name="problema" class="form-control" rows="4" required>{{ ticket.problema }}</textarea>
-                        <div class="form-text text-success"><i class="fas fa-pen"></i> Puedes editar esto porque el ticket aún está Abierto.</div>
+                    <textarea name="problema" class="form-control" rows="4" required>{{ ticket.problema }}</textarea>
+                    <div class="form-text text-success"><i class="fas fa-pen"></i> Puedes editar esto porque el ticket
+                        aún está Abierto.</div>
                     {% else %}
-                        <textarea class="form-control bg-light" rows="4" disabled>{{ ticket.problema }}</textarea>
-                        {% if session['role'] != 'user' %}
-                        <div class="form-text"><i class="fas fa-lock"></i> La descripción del usuario está protegida.</div>
-                        {% endif %}
+                    <textarea class="form-control bg-light" rows="4" disabled>{{ ticket.problema }}</textarea>
+                    {% if session['role'] != 'user' %}
+                    <div class="form-text"><i class="fas fa-lock"></i> La descripción del usuario está protegida.</div>
+                    {% endif %}
                     {% endif %}
                 </div>
 
                 {% if session['role'] in ['admin', 'tecnico'] or ticket.solucion %}
-                
+
                 <h5 class="text-muted border-bottom pb-2 mb-3 mt-4">🔧 Gestión Técnica</h5>
-                
+
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Estado Actual</label>
                         {% if session['role'] in ['admin', 'tecnico'] %}
-                            <select name="estado" class="form-select">
-                                {% for est in estados %}
-                                <option value="{{ est }}" {% if ticket.estado == est %}selected{% endif %}>{{ est }}</option>
-                                {% endfor %}
-                            </select>
+                        <select name="estado" class="form-select">
+                            {% for est in estados %}
+                            <option value="{{ est }}" {% if ticket.estado.value==est %}selected{% endif %}>{{ est }}
+                            </option>
+                            {% endfor %}
+                        </select>
                         {% else %}
-                            <input type="text" class="form-control" value="{{ ticket.estado }}" disabled>
+                        <input type="text" class="form-control" value="{{ ticket.estado.value }}" disabled>
                         {% endif %}
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Técnico Asignado</label>
                         {% if session['role'] in ['admin', 'tecnico'] %}
-                            <select name="tecnico_id" class="form-select">
-                                <option value="">-- Sin Asignar --</option>
-                                {% for tec in tecnicos %}
-                                <option value="{{ tec.id }}" {% if ticket.tecnico_id == tec.id %}selected{% endif %}>
-                                    {{ tec.username }}
-                                </option>
-                                {% endfor %}
-                            </select>
+                        <select name="tecnico_id" class="form-select">
+                            <option value="">-- Sin Asignar --</option>
+                            {% for tec in tecnicos %}
+                            <option value="{{ tec.id }}" {% if ticket.tecnico_id|string==tec.id|string %}selected{%
+                                endif %}>
+                                {{ tec.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
                         {% else %}
-                             <input type="text" class="form-control" value="{% for tec in tecnicos %}{% if ticket.tecnico_id == tec.id %}{{ tec.username }}{% endif %}{% endfor %}" disabled placeholder="Pendiente de asignar">
+                        <input type="text" class="form-control"
+                            value="{% for tec in tecnicos %}{% if ticket.tecnico_id|string == tec.id|string %}{{ tec.username }}{% endif %}{% endfor %}"
+                            disabled placeholder="Pendiente de asignar">
                         {% endif %}
                     </div>
                 </div>
@@ -105,26 +114,28 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">Solución / Notas Técnicas</label>
                     {% if session['role'] in ['admin', 'tecnico'] %}
-                        <textarea name="solucion" class="form-control" rows="4" placeholder="Describe la solución aplicada...">{{ ticket.solucion or '' }}</textarea>
+                    <textarea name="solucion" class="form-control" rows="4"
+                        placeholder="Describe la solución aplicada...">{{ ticket.solucion or '' }}</textarea>
                     {% else %}
-                        <div class="p-3 bg-light border rounded">
-                            {% if ticket.solucion %}
-                                {{ ticket.solucion }}
-                            {% else %}
-                                <span class="text-muted fst-italic">Aún no hay notas de solución.</span>
-                            {% endif %}
-                        </div>
+                    <div class="p-3 bg-light border rounded">
+                        {% if ticket.solucion %}
+                        {{ ticket.solucion }}
+                        {% else %}
+                        <span class="text-muted fst-italic">Aún no hay notas de solución.</span>
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
                 {% endif %}
 
                 <div class="d-flex justify-content-end gap-2 mt-4">
                     <a href="{{ url_for('lista_soportes') }}" class="btn btn-outline-secondary">Volver</a>
-                    
-                    {% if (session['role'] == 'user' and ticket.estado == 'Abierto') or session['role'] in ['admin', 'tecnico'] %}
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Guardar Cambios
-                        </button>
+
+                    {% if (session['role'] == 'user' and ticket.estado == 'Abierto') or session['role'] in ['admin',
+                    'tecnico'] %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
                     {% endif %}
                 </div>
             </form>

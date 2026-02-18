@@ -11,40 +11,50 @@
             </div>
             <div class="card-body">
                 <form method="POST">
-                    
+
                     <h5 class="text-primary border-bottom pb-2 mb-3">Información General</h5>
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label class="form-label">Nombre del Equipo</label>
-                            <input type="text" name="nombre_equipo" class="form-control" value="{{ equipo.nombre_equipo if equipo else '' }}" required placeholder="Ej: LAPTOP-01">
+                            <input type="text" name="nombre_equipo" class="form-control"
+                                value="{{ equipo.nombre_equipo if equipo else '' }}" required
+                                placeholder="Ej: LAPTOP-01">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Tipo</label>
                             <select name="tipo" class="form-select">
-                                <option value="Laptop" {% if equipo and equipo.tipo == 'Laptop' %}selected{% endif %}>Laptop</option>
-                                <option value="Desktop" {% if equipo and equipo.tipo == 'Desktop' %}selected{% endif %}>Escritorio</option>
-                                <option value="Servidor" {% if equipo and equipo.tipo == 'Servidor' %}selected{% endif %}>Servidor</option>
-                                <option value="Impresora" {% if equipo and equipo.tipo == 'Impresora' %}selected{% endif %}>Impresora</option>
+                                <option value="Laptop" {% if equipo and equipo.tipo=='Laptop' %}selected{% endif %}>
+                                    Laptop</option>
+                                <option value="Desktop" {% if equipo and equipo.tipo=='Desktop' %}selected{% endif %}>
+                                    Escritorio</option>
+                                <option value="Servidor" {% if equipo and equipo.tipo=='Servidor' %}selected{% endif %}>
+                                    Servidor</option>
+                                <option value="Impresora" {% if equipo and equipo.tipo=='Impresora' %}selected{% endif
+                                    %}>Impresora</option>
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Color</label>
-                            <input type="text" name="color" class="form-control" value="{{ equipo.color if equipo else '' }}" placeholder="Ej: Gris Espacial">
+                            <input type="text" name="color" class="form-control"
+                                value="{{ equipo.color if equipo else '' }}" placeholder="Ej: Gris Espacial">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Fecha de Compra</label>
-                            <input type="date" name="fecha_compra" class="form-control" value="{{ equipo.fecha_compra if equipo else '' }}">
+                            <input type="date" name="fecha_compra" class="form-control"
+                                value="{{ equipo.fecha_compra if equipo else '' }}">
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Marca y Modelo</label>
-                            <input type="text" name="marca_modelo" class="form-control" value="{{ equipo.marca_modelo if equipo else '' }}">
+                            <input type="text" name="marca_modelo" class="form-control"
+                                value="{{ equipo.marca_modelo if equipo else '' }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Número de Serie</label>
-                            <input type="text" name="numero_serie" class="form-control" value="{{ equipo.numero_serie if equipo else '' }}">
+                            <input type="text" name="numero_serie" class="form-control"
+                                value="{{ equipo.numero_serie if equipo else '' }}">
                         </div>
                     </div>
 
@@ -52,35 +62,44 @@
                     <div class="row mb-3">
                         <div class="col-md-12 mb-3">
                             <label class="form-label">Procesador</label>
-                            <input type="text" name="procesador" class="form-control" value="{{ equipo.procesador if equipo else '' }}">
+                            <input type="text" name="procesador" class="form-control"
+                                value="{{ equipo.procesador if equipo else '' }}">
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-3">
                             <label class="form-label">Cant. Memoria RAM</label>
-                            <input type="text" name="memoria_ram" class="form-control" value="{{ equipo.memoria_ram if equipo else '' }}" placeholder="Ej: 16 GB">
+                            <input type="text" name="memoria_ram" class="form-control"
+                                value="{{ equipo.memoria_ram if equipo else '' }}" placeholder="Ej: 16 GB">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Tipo DDR</label>
                             <select name="tipo_ram" class="form-select">
                                 <option value="">-- Seleccionar --</option>
-                                <option value="DDR5" {% if equipo and equipo.tipo_ram == 'DDR5' %}selected{% endif %}>DDR5</option>
-                                <option value="DDR4" {% if equipo and equipo.tipo_ram == 'DDR4' %}selected{% endif %}>DDR4</option>
-                                <option value="DDR3" {% if equipo and equipo.tipo_ram == 'DDR3' %}selected{% endif %}>DDR3</option>
+                                <option value="DDR5" {% if equipo and equipo.tipo_ram=='DDR5' %}selected{% endif %}>DDR5
+                                </option>
+                                <option value="DDR4" {% if equipo and equipo.tipo_ram=='DDR4' %}selected{% endif %}>DDR4
+                                </option>
+                                <option value="DDR3" {% if equipo and equipo.tipo_ram=='DDR3' %}selected{% endif %}>DDR3
+                                </option>
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Capacidad Disco</label>
-                            <input type="text" name="disco_duro" class="form-control" value="{{ equipo.disco_duro if equipo else '' }}" placeholder="Ej: 512 GB">
+                            <input type="text" name="disco_duro" class="form-control"
+                                value="{{ equipo.disco_duro if equipo else '' }}" placeholder="Ej: 512 GB">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Tipo Disco</label>
                             <select name="tipo_disco" class="form-select">
                                 <option value="">-- Seleccionar --</option>
-                                <option value="SSD NVMe" {% if equipo and equipo.tipo_disco == 'SSD NVMe' %}selected{% endif %}>SSD NVMe</option>
-                                <option value="SSD SATA" {% if equipo and equipo.tipo_disco == 'SSD SATA' %}selected{% endif %}>SSD SATA</option>
-                                <option value="HDD" {% if equipo and equipo.tipo_disco == 'HDD' %}selected{% endif %}>HDD</option>
+                                <option value="SSD NVMe" {% if equipo and equipo.tipo_disco=='SSD NVMe' %}selected{%
+                                    endif %}>SSD NVMe</option>
+                                <option value="SSD SATA" {% if equipo and equipo.tipo_disco=='SSD SATA' %}selected{%
+                                    endif %}>SSD SATA</option>
+                                <option value="HDD" {% if equipo and equipo.tipo_disco=='HDD' %}selected{% endif %}>HDD
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -91,7 +110,8 @@
                         <select name="usuario_asignado_id" class="form-select">
                             <option value="">-- Mantener en Stock (Sin Asignar) --</option>
                             {% for usuario in usuarios %}
-                            <option value="{{ usuario.id }}" {% if equipo and equipo.usuario_asignado_id == usuario.id %}selected{% endif %}>
+                            <option value="{{ usuario.id }}" {% if equipo and
+                                (equipo.usuario_asignado_id|string)==(usuario.id|string) %}selected{% endif %}>
                                 {{ usuario.username }}
                             </option>
                             {% endfor %}

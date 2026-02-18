@@ -7,56 +7,56 @@
 
 <div class="row g-4 mb-4">
     <div class="col-md-3">
-        <div class="card text-white bg-danger h-100 shadow-sm border-0">
+        <div class="card glass-card glass-card-danger h-100 border-0">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title mb-0 opacity-75">Tickets Abiertos</h6>
-                        <h2 class="display-5 fw-bold my-1">{{ kpis.total_abiertos }}</h2>
+                        <h6 class="card-title mb-0 opacity-75 text-danger fw-bold">Tickets Abiertos</h6>
+                        <h2 class="display-6 fw-bold my-1 text-dark">{{ kpis.total_abiertos }}</h2>
                     </div>
-                    <i class="fas fa-exclamation-circle fa-3x opacity-50"></i>
+                    <i class="fas fa-exclamation-circle fa-2x text-danger opacity-50"></i>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3">
-        <div class="card text-white bg-warning text-dark h-100 shadow-sm border-0">
+        <div class="card glass-card glass-card-warning h-100 border-0">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title mb-0 opacity-75">En Proceso</h6>
-                        <h2 class="display-5 fw-bold my-1">{{ kpis.total_en_proceso }}</h2>
+                        <h6 class="card-title mb-0 opacity-75 text-warning fw-bold">En Proceso</h6>
+                        <h2 class="display-6 fw-bold my-1 text-dark">{{ kpis.total_en_proceso }}</h2>
                     </div>
-                    <i class="fas fa-tools fa-3x opacity-50"></i>
+                    <i class="fas fa-tools fa-2x text-warning opacity-50"></i>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3">
-        <div class="card text-white bg-success h-100 shadow-sm border-0">
+        <div class="card glass-card glass-card-success h-100 border-0">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title mb-0 opacity-75">Mantenimientos</h6>
-                        <h2 class="display-5 fw-bold my-1">{{ kpis.mantenimientos_pendientes }}</h2>
+                        <h6 class="card-title mb-0 opacity-75 text-success fw-bold">Mantenimientos</h6>
+                        <h2 class="display-6 fw-bold my-1 text-dark">{{ kpis.mantenimientos_pendientes }}</h2>
                     </div>
-                    <i class="fas fa-calendar-check fa-3x opacity-50"></i>
+                    <i class="fas fa-calendar-check fa-2x text-success opacity-50"></i>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3">
-        <div class="card text-white bg-primary h-100 shadow-sm border-0">
+        <div class="card glass-card glass-card-primary h-100 border-0">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title mb-0 opacity-75">Mis Tickets</h6>
-                        <h2 class="display-5 fw-bold my-1">{{ kpis.mis_tickets }}</h2>
+                        <h6 class="card-title mb-0 opacity-75 text-primary fw-bold">Mis Tickets</h6>
+                        <h2 class="display-6 fw-bold my-1 text-dark">{{ kpis.mis_tickets }}</h2>
                     </div>
-                    <i class="fas fa-user-tag fa-3x opacity-50"></i>
+                    <i class="fas fa-user-tag fa-2x text-primary opacity-50"></i>
                 </div>
             </div>
         </div>
@@ -89,7 +89,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
         // --- Configuración Gráfico de Dona (Estados) ---
         const canvasEstado = document.getElementById('chartEstados');
         if (canvasEstado) {
@@ -98,38 +98,38 @@
                 type: 'doughnut',
                 data: {
                     labels: {{ g_estado.labels | tojson }},
-                    datasets: [{
-                        // IMPORTANTE: Aquí usamos .datos en lugar de .values
-                        data: {{ g_estado.datos | tojson }},
-                        backgroundColor: ['#198754', '#0d6efd', '#0dcaf0', '#6c757d'], // Ver, Azu, Cya, Gri
-                        borderWidth: 1
+        datasets: [{
+            // IMPORTANTE: Aquí usamos .datos en lugar de .values
+            data: {{ g_estado.datos | tojson }},
+        backgroundColor: ['#198754', '#0d6efd', '#0dcaf0', '#6c757d'], // Ver, Azu, Cya, Gri
+        borderWidth: 1
                     }]
                 },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
             });
         }
 
-        // --- Configuración Gráfico de Barras (Categorías) ---
-        const canvasCat = document.getElementById('chartCategorias');
-        if (canvasCat) {
-            const ctxCat = canvasCat.getContext('2d');
-            new Chart(ctxCat, {
-                type: 'bar',
-                data: {
-                    labels: {{ g_cat.labels | tojson }},
-                    datasets: [{
-                        label: 'Cantidad de Tickets',
-                        // IMPORTANTE: Aquí usamos .datos en lugar de .values
-                        data: {{ g_cat.datos | tojson }},
-                        backgroundColor: '#0d6efd',
-                        borderRadius: 5
+    // --- Configuración Gráfico de Barras (Categorías) ---
+    const canvasCat = document.getElementById('chartCategorias');
+    if (canvasCat) {
+        const ctxCat = canvasCat.getContext('2d');
+        new Chart(ctxCat, {
+            type: 'bar',
+            data: {
+                labels: {{ g_cat.labels | tojson }},
+    datasets: [{
+        label: 'Cantidad de Tickets',
+        // IMPORTANTE: Aquí usamos .datos en lugar de .values
+        data: {{ g_cat.datos | tojson }},
+        backgroundColor: '#0d6efd',
+        borderRadius: 5
                     }]
                 },
-                options: { 
-                    responsive: true,
-                    scales: { y: { beginAtZero: true } },
-                    plugins: { legend: { display: false } }
-                }
+    options: {
+        responsive: true,
+            scales: { y: { beginAtZero: true } },
+        plugins: { legend: { display: false } }
+    }
             });
         }
     });

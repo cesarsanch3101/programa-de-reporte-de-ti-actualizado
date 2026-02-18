@@ -27,7 +27,8 @@
                 <p>Nueva fecha: <strong id="dragFecha"></strong></p>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Motivo del cambio (Requerido):</label>
-                    <textarea id="dragMotivo" class="form-control" rows="2" placeholder="Ej: Falta de repuestos..."></textarea>
+                    <textarea id="dragMotivo" class="form-control" rows="2"
+                        placeholder="Ej: Falta de repuestos..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -41,94 +42,103 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendar');
-    var modalElement = document.getElementById('modalDragDrop');
-    var modalDrag = new bootstrap.Modal(modalElement);
-    
-    // Variables temporales para el drag & drop
-    var eventoArrastrado = null;
-    var revertirCambio = null;
+    document.addEventListener('DOMContentLoaded', function () {
+        var calendarEl = document.getElementById('calendar');
+        var modalElement = document.getElementById('modalDragDrop');
+        var modalDrag = new bootstrap.Modal(modalElement);
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,listYear'
-      },
-      locale: 'es',
-      height: 'auto',
-      navLinks: true,
-      editable: true, // ¡ESTO PERMITE ARRASTRAR!
-      events: '{{ url_for("api_eventos") }}',
-      
-      // Callback: Cuando se suelta un evento en otro día
-      eventDrop: function(info) {
-        eventoArrastrado = info.event;
-        revertirCambio = info.revert; // Función para deshacer si cancela
+        // Variables temporales para el drag & drop
+        var eventoArrastrado = null;
+        var revertirCambio = null;
 
-        // Llenar datos del modal
-        document.getElementById('dragTitulo').textContent = info.event.title;
-        document.getElementById('dragFecha').textContent = info.event.start.toLocaleDateString();
-        document.getElementById('dragMotivo').value = ''; // Limpiar motivo
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listYear'
+            },
+            locale: 'es',
+            height: 'auto',
+            navLinks: false,
+            selectable: true,
+            editable: true, // ¡ESTO PERMITE ARRASTRAR!
+            events: '{{ url_for("api_eventos") }}',
 
-        // Mostrar Modal
-        modalDrag.show();
-      },
+            select: function (info) {
+                window.location.href = "{{ url_for('programar_mantenimiento') }}?fecha=" + info.startStr;
+            },
 
-      eventClick: function(info) {
-        if (info.event.url) {
-          window.location.href = info.event.url;
-          info.jsEvent.preventDefault();
-        }
-      }
-    });
-    
-    calendar.render();
+            dateClick: function (info) {
+                // Ya manejado por 'select'
+            },
 
-    // --- LÓGICA DEL MODAL ---
-    
-    // Botón Cancelar: Revertir el movimiento en el calendario
-    document.getElementById('btnCancelarDrag').addEventListener('click', function() {
-        if (revertirCambio) revertirCambio();
-        modalDrag.hide();
-    });
+            // Callback: Cuando se suelta un evento en otro día
+            eventDrop: function (info) {
+                eventoArrastrado = info.event;
+                revertirCambio = info.revert; // Función para deshacer si cancela
 
-    // Botón Confirmar: Enviar a la API
-    document.getElementById('btnConfirmarDrag').addEventListener('click', function() {
-        var motivo = document.getElementById('dragMotivo').value;
-        if (!motivo) {
-            alert("Por favor, ingresa un motivo para el cambio.");
-            return;
-        }
+                // Llenar datos del modal
+                document.getElementById('dragTitulo').textContent = info.event.title;
+                document.getElementById('dragFecha').textContent = info.event.start.toLocaleDateString();
+                document.getElementById('dragMotivo').value = ''; // Limpiar motivo
 
-        // Enviar datos al backend con fetch
-        fetch('{{ url_for("mover_mantenimiento") }}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: eventoArrastrado.id,
-                nueva_fecha: eventoArrastrado.start.toISOString().split('T')[0], // Formato YYYY-MM-DD
-                motivo: motivo
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                modalDrag.hide();
-                // Opcional: Mostrar toast de éxito
-            } else {
-                alert("Error al guardar.");
-                revertirCambio();
+                // Mostrar Modal
+                modalDrag.show();
+            },
+
+            eventClick: function (info) {
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault();
+                }
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            revertirCambio();
+        });
+
+        calendar.render();
+
+        // --- LÓGICA DEL MODAL ---
+
+        // Botón Cancelar: Revertir el movimiento en el calendario
+        document.getElementById('btnCancelarDrag').addEventListener('click', function () {
+            if (revertirCambio) revertirCambio();
+            modalDrag.hide();
+        });
+
+        // Botón Confirmar: Enviar a la API
+        document.getElementById('btnConfirmarDrag').addEventListener('click', function () {
+            var motivo = document.getElementById('dragMotivo').value;
+            if (!motivo) {
+                alert("Por favor, ingresa un motivo para el cambio.");
+                return;
+            }
+
+            // Enviar datos al backend con fetch
+            fetch('{{ url_for("mover_mantenimiento") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: eventoArrastrado.id,
+                    nueva_fecha: eventoArrastrado.start.toISOString().split('T')[0], // Formato YYYY-MM-DD
+                    motivo: motivo
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        modalDrag.hide();
+                        // Opcional: Mostrar toast de éxito
+                    } else {
+                        alert("Error al guardar.");
+                        revertirCambio();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    revertirCambio();
+                });
         });
     });
-  });
 </script>
 
 <style>
@@ -137,8 +147,10 @@
         margin: 0 auto;
         font-family: 'Segoe UI', sans-serif;
     }
+
     .fc-event {
-        cursor: move; /* Cursor de movimiento */
+        cursor: move;
+        /* Cursor de movimiento */
     }
 </style>
 {% endblock %}

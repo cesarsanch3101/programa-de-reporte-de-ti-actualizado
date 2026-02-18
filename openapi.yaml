@@ -1,0 +1,116 @@
+openapi: 3.0.3
+info:
+  title: IT Support Reporting API
+  description: API contract for the IT Support Reporting application, following enterprise standards.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/v1
+paths:
+  /tickets:
+    get:
+      summary: List all tickets
+      parameters:
+        - name: estado
+          in: query
+          schema:
+            type: string
+        - name: prioridad
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+    post:
+      summary: Create a new ticket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketCreate'
+      responses:
+        '201':
+          description: Ticket created
+  /tickets/{id}:
+    get:
+      summary: Get ticket details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Ticket details
+    patch:
+      summary: Update ticket status or solution
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketUpdate'
+      responses:
+        '200':
+          description: Ticket updated
+
+components:
+  schemas:
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        problema:
+          type: string
+        estado:
+          type: string
+          enum: [Abierto, En Proceso, Resuelto, Cerrado]
+        prioridad:
+          type: string
+          enum: [Baja, Media, Alta, Urgente]
+        fecha_creacion:
+          type: string
+          format: date-time
+        usuario_id:
+          type: string
+          format: uuid
+        tecnico_id:
+          type: string
+          format: uuid
+    TicketCreate:
+      type: object
+      required: [problema, categoria, prioridad]
+      properties:
+        problema:
+          type: string
+        categoria:
+          type: string
+        prioridad:
+          type: string
+    TicketUpdate:
+      type: object
+      properties:
+        estado:
+          type: string
+        solucion:
+          type: string
+        tecnico_id:
+          type: string
+          format: uuid

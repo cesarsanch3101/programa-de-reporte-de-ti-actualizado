@@ -17,7 +17,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'clave-por-defecto-insegura'
     
     # Base de Datos
-    DB_FILE = os.environ.get('DB_NAME', 'soportes.db')
+    DB_FILE = os.environ.get('DB_NAME', 'soportes_v2.db')
     
     # Configuración de Flask-Mail
     MAIL_SERVER = os.environ.get('MAIL_SERVER')

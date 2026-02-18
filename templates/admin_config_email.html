@@ -2,50 +2,82 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-server"></i> Configuración de Servidor de Correo</h5>
+    <div class="col-md-9 col-lg-7">
+        <div class="card glass-card h-100 border-0">
+            <div class="card-header bg-transparent py-4 border-bottom">
+                <h4 class="mb-0 text-dark fw-bold"><i class="fas fa-server text-primary"></i> Configuración de Servidor
+                    de Correo</h4>
+                <p class="text-muted small mb-0 mt-2">Parámetros globales para el envío de notificaciones del sistema.
+                </p>
             </div>
-            <div class="card-body">
-                <div class="alert alert-info border-start border-5 border-info">
-                    <i class="fas fa-info-circle"></i> Estos parámetros se usarán para enviar notificaciones automáticas.
-                    Si se dejan vacíos, el sistema intentará usar la configuración por defecto (Environment).
+            <div class="card-body p-4">
+                <div class="alert alert-info border-0 shadow-sm mb-4"
+                    style="background: rgba(13, 202, 240, 0.1); color: #055160;">
+                    <div class="d-flex">
+                        <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                        <div>
+                            <span class="fw-bold">Información:</span> Estos parámetros se usarán para enviar
+                            notificaciones automáticas por cada ticket o mantenimiento. Si se dejan vacíos, se usará la
+                            configuración del servidor.
+                        </div>
+                    </div>
                 </div>
 
                 <form method="POST">
-                    <div class="row mb-3">
+                    <div class="row g-4 mb-4">
                         <div class="col-md-8">
-                            <label class="form-label">Servidor SMTP</label>
-                            <input type="text" name="MAIL_SERVER" class="form-control" value="{{ config.get('MAIL_SERVER', '') }}" placeholder="Ej: smtp.gmail.com">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Servidor SMTP</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="fas fa-globe"></i></span>
+                                <input type="text" name="MAIL_SERVER" class="form-control border-0 bg-light"
+                                    value="{{ config.get('MAIL_SERVER', '') }}" placeholder="Ej: smtp.gmail.com">
+                            </div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Puerto</label>
-                            <input type="number" name="MAIL_PORT" class="form-control" value="{{ config.get('MAIL_PORT', '') }}" placeholder="Ej: 587">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Puerto</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="fas fa-plug"></i></span>
+                                <input type="number" name="MAIL_PORT" class="form-control border-0 bg-light"
+                                    value="{{ config.get('MAIL_PORT', '') }}" placeholder="587">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Usuario / Correo</label>
-                        <input type="email" name="MAIL_USERNAME" class="form-control" value="{{ config.get('MAIL_USERNAME', '') }}" placeholder="correo@empresa.com">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Usuario / Correo
+                            Electrónico</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="fas fa-envelope"></i></span>
+                            <input type="email" name="MAIL_USERNAME" class="form-control border-0 bg-light"
+                                value="{{ config.get('MAIL_USERNAME', '') }}" placeholder="infraestructura@empresa.com">
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Contraseña / App Password</label>
-                        <input type="password" name="MAIL_PASSWORD" class="form-control" value="{{ config.get('MAIL_PASSWORD', '') }}">
-                        <div class="form-text">Por seguridad, usa una "Contraseña de Aplicación" si usas Gmail.</div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Contraseña / App
+                            Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="fas fa-key"></i></span>
+                            <input type="password" name="MAIL_PASSWORD" class="form-control border-0 bg-light"
+                                value="{{ config.get('MAIL_PASSWORD', '') }}">
+                        </div>
+                        <div class="form-text mt-2 small">
+                            <i class="fas fa-shield-alt"></i> Por seguridad, usa una <strong>Contraseña de
+                                Aplicación</strong> si utilizas servicios como Gmail o Outlook Corp.
+                        </div>
                     </div>
 
-                    <div class="form-check mb-4">
-                        <input class="form-check-input" type="checkbox" name="MAIL_USE_TLS" id="tls" {% if config.get('MAIL_USE_TLS') == 'True' %}checked{% endif %}>
-                        <label class="form-check-label" for="tls">
-                            Usar Cifrado TLS (Recomendado)
+                    <div class="form-check form-switch mb-5">
+                        <input class="form-check-input" type="checkbox" name="MAIL_USE_TLS" id="tls" {% if
+                            config.get('MAIL_USE_TLS')=='True' %}checked{% endif %}>
+                        <label class="form-check-label fw-bold" for="tls">
+                            Activar Cifrado TLS (Seguro)
                         </label>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Guardar Configuración
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg shadow">
+                            <i class="fas fa-save me-2"></i> Guardar y Aplicar Cambios
                         </button>
                     </div>
                 </form>

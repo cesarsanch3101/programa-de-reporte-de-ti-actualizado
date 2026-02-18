@@ -1,110 +1,158 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión TI Enterprise</title>
-    
+    <title>Soporte TI | Enterprise</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="bg-light sap-mode">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm z-index-1000">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('dashboard') }}">
-                <i class="fas fa-network-wired me-2 text-warning"></i>
-                Soporte TI 
-                <div class="vr mx-2 bg-secondary" style="height: 20px;"></div>
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Empresa" height="30" class="d-inline-block align-text-top">
-            </a>
+<body>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                {% if session.get('user_id') %}
-                <ul class="navbar-nav me-auto ms-3">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('lista_soportes') }}"><i class="fas fa-ticket-alt"></i> Tickets</a>
-                    </li>
-                    
-                    {% if session.get('role') in ['admin', 'tecnico'] %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-laptop"></i> Activos
-                        </a>
-                        <ul class="dropdown-menu shadow">
-                            <li><a class="dropdown-item" href="{{ url_for('lista_equipos') }}">Inventario</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('lista_mantenimientos') }}">Lista de Tareas</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('ver_calendario') }}"><i class="far fa-calendar-alt me-2"></i> Ver Calendario Anual</a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                    
-                    {% if session.get('role') == 'admin' %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-cogs"></i> Configuración
-                        </a>
-                        <ul class="dropdown-menu shadow">
-                            <li><a class="dropdown-item" href="{{ url_for('admin_usuarios') }}"><i class="fas fa-users-cog me-2"></i> Gestión de Usuarios</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_config_email') }}"><i class="fas fa-envelope me-2"></i> Parámetros de Correo</a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                </ul>
-                
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-circle-sm me-2">{{ session.get('username')[0].upper() }}</div>
-                                {{ session.get('username') }}
-                            </div>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow">
-                            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
-                        </ul>
-                    </li>
-                </ul>
+    <div class="app-wrapper">
+        {% if session.get('user_id') %}
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="sidebar-logo">
+                <h1 class="sidebar-title">Soporte TI</h1>
+            </div>
+
+            <div class="sidebar-menu">
+                <div class="menu-section">Principal</div>
+                <div class="menu-item">
+                    <a href="{{ url_for('dashboard') }}"
+                        class="menu-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-th-large"></i> Dashboard
+                    </a>
+                </div>
+                <div class="menu-item">
+                    <a href="{{ url_for('lista_soportes') }}"
+                        class="menu-link {% if request.endpoint == 'lista_soportes' %}active{% endif %}">
+                        <i class="fas fa-ticket-alt"></i> Mis Tickets
+                    </a>
+                </div>
+
+                {% if session.get('role') in ['admin', 'tecnico'] %}
+                <div class="menu-section">Gestión Técnica</div>
+                <div class="menu-item">
+                    <a href="{{ url_for('lista_equipos') }}"
+                        class="menu-link {% if request.endpoint == 'lista_equipos' %}active{% endif %}">
+                        <i class="fas fa-laptop"></i> Inventario
+                    </a>
+                </div>
+                <div class="menu-item">
+                    <a href="{{ url_for('lista_mantenimientos') }}"
+                        class="menu-link {% if request.endpoint == 'lista_mantenimientos' %}active{% endif %}">
+                        <i class="fas fa-tools"></i> Mantenimientos
+                    </a>
+                </div>
+                <div class="menu-item">
+                    <a href="{{ url_for('ver_calendario') }}"
+                        class="menu-link {% if request.endpoint == 'ver_calendario' %}active{% endif %}">
+                        <i class="far fa-calendar-alt"></i> Calendario
+                    </a>
+                </div>
+                {% endif %}
+
+                {% if session.get('role') == 'admin' %}
+                <div class="menu-section">Sistema</div>
+                <div class="menu-item">
+                    <a href="{{ url_for('admin_usuarios') }}"
+                        class="menu-link {% if request.endpoint == 'admin_usuarios' %}active{% endif %}">
+                        <i class="fas fa-users-cog"></i> Usuarios
+                    </a>
+                </div>
+                <div class="menu-item">
+                    <a href="{{ url_for('admin_config_email') }}"
+                        class="menu-link {% if request.endpoint == 'admin_config_email' %}active{% endif %}">
+                        <i class="fas fa-envelope-open-text"></i> Email Config
+                    </a>
+                </div>
                 {% endif %}
             </div>
-        </div>
-    </nav>
+        </aside>
+        {% endif %}
 
-    <main class="container-fluid py-3 main-container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="main-content">
+            {% if session.get('user_id') %}
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-light d-lg-none me-3" id="sidebarToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h5 class="mb-0 text-muted small fw-bold text-uppercase d-none d-md-block">
+                        {% if request.endpoint == 'dashboard' %}Panel de Control
+                        {% elif request.endpoint == 'lista_soportes' %}Gestión de Tickets
+                        {% elif request.endpoint == 'lista_equipos' %}Fichas de Inventario
+                        {% elif request.endpoint == 'lista_mantenimientos' %}Cronograma de Tareas
+                        {% else %}Sistema de Gestión TI{% endif %}
+                    </h5>
+                </div>
+
+                <div class="user-profile dropdown">
+                    <div class="d-flex flex-column text-end me-3 d-none d-sm-flex">
+                        <span class="fw-bold small">{{ session.get('username') }}</span>
+                        <span class="text-muted" style="font-size: 0.75rem;">{{ session.get('role') | capitalize
+                            }}</span>
                     </div>
-                {% endfor %}
+                    <div class="avatar-circle dropdown-toggle" data-bs-toggle="dropdown">
+                        {{ session.get('username')[0].upper() }}
+                    </div>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                        <li><a class="dropdown-item py-2" href="{{ url_for('logout') }}"><i
+                                    class="fas fa-sign-out-alt text-danger me-2"></i> Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </header>
             {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
-    </main>
 
+            <main class="content-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Floating Action Button -->
+            <div class="fab-container">
+                <a href="{{ url_for('agregar') }}" class="fab" title="Nuevo Ticket">
+                    <i class="fas fa-plus"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
+    <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
-    
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
@@ -112,32 +160,28 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.colVis.min.js"></script>
 
     <script>
-        $(document).ready(function() {
-            // Inicializador de tablas Enterprise
-            var table = $('.tabla-enterprise').DataTable({
+        $(document).ready(function () {
+            // Sidebar Toggle
+            $('#sidebarToggle').on('click', function () {
+                $('#sidebar').toggleClass('show');
+            });
+
+            // Global DataTables
+            $('.tabla-enterprise').DataTable({
                 responsive: true,
-                order: [], // Desactiva ordenamiento automático inicial (usa el del backend)
-                dom: '<"row mb-3"<"col-md-6"B><"col-md-6"f>>' + 
-                     'rt' + 
-                     '<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                dom: '<"row mb-3"<"col-md-6"B><"col-md-6"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                 buttons: [
                     { extend: 'excel', className: 'btn btn-success btn-sm', text: '<i class="fas fa-file-excel"></i> Excel' },
                     { extend: 'pdf', className: 'btn btn-danger btn-sm', text: '<i class="fas fa-file-pdf"></i> PDF' },
-                    { extend: 'print', className: 'btn btn-secondary btn-sm', text: '<i class="fas fa-print"></i> Imprimir' },
-                    { extend: 'colvis', className: 'btn btn-outline-dark btn-sm', text: '<i class="fas fa-columns"></i> Columnas' }
+                    { extend: 'print', className: 'btn btn-secondary btn-sm', text: '<i class="fas fa-print"></i> Imprimir' }
                 ],
-                language: {
-                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json"
-                },
-                pageLength: 20,
-                scrollY: '65vh',
-                scrollCollapse: true,
-                paging: true
+                language: { url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json" },
+                pageLength: 15
             });
         });
     </script>
 </body>
+
 </html>

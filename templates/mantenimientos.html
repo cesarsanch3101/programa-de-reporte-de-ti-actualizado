@@ -3,10 +3,12 @@
 {% block content %}
 <div class="card shadow h-100 border-0">
     <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-clipboard-list"></i> Reporte y Gestión de Mantenimientos</h5>
-        
+        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-clipboard-list"></i> Reporte y Gestión de Mantenimientos
+        </h5>
+
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#panelFiltros">
+            <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="collapse"
+                data-bs-target="#panelFiltros">
                 <i class="fas fa-filter"></i> Generar Reporte
             </button>
             <a href="{{ url_for('programar_mantenimiento') }}" class="btn btn-warning btn-sm text-dark">
@@ -21,18 +23,22 @@
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label small fw-bold">Desde:</label>
-                        <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ request.args.get('fecha_inicio', '') }}">
+                        <input type="date" name="fecha_inicio" class="form-control form-control-sm"
+                            value="{{ request.args.get('fecha_inicio', '') }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small fw-bold">Hasta:</label>
-                        <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ request.args.get('fecha_fin', '') }}">
+                        <input type="date" name="fecha_fin" class="form-control form-control-sm"
+                            value="{{ request.args.get('fecha_fin', '') }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small fw-bold">Estado:</label>
                         <select name="estado" class="form-select form-select-sm">
                             <option value="Todos">Todos</option>
-                            <option value="Pendiente" {% if request.args.get('estado') == 'Pendiente' %}selected{% endif %}>Pendiente</option>
-                            <option value="Realizado" {% if request.args.get('estado') == 'Realizado' %}selected{% endif %}>Realizado</option>
+                            <option value="Pendiente" {% if request.args.get('estado')=='Pendiente' %}selected{% endif
+                                %}>Pendiente</option>
+                            <option value="Realizado" {% if request.args.get('estado')=='Realizado' %}selected{% endif
+                                %}>Realizado</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -40,15 +46,18 @@
                         <select name="equipo_id" class="form-select form-select-sm">
                             <option value="Todos">Todos</option>
                             {% for eq in equipos %}
-                            <option value="{{ eq.id }}" {% if request.args.get('equipo_id') == (eq.id | string) %}selected{% endif %}>{{ eq.nombre_equipo }}</option>
+                            <option value="{{ eq.id }}" {% if request.args.get('equipo_id')==(eq.id | string)
+                                %}selected{% endif %}>{{ eq.nombre_equipo }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-12 text-end">
-                        <a href="{{ url_for('lista_mantenimientos') }}" class="btn btn-outline-secondary btn-sm me-2">Limpiar</a>
-                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Generar Lista</button>
+                        <a href="{{ url_for('lista_mantenimientos') }}"
+                            class="btn btn-outline-secondary btn-sm me-2">Limpiar</a>
+                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Generar
+                            Lista</button>
                     </div>
                 </div>
             </form>
@@ -75,55 +84,57 @@
                         <i class="far fa-calendar-alt text-muted me-1"></i>
                         {{ mant.fecha_programada }}
                     </td>
-                    
+
                     <td class="fw-bold">{{ mant.titulo }}</td>
-                    
+
                     <td>
                         <span class="badge bg-light text-dark border">
                             <i class="fas fa-laptop"></i> {{ mant.nombre_equipo }}
                         </span>
                     </td>
-                    
+
                     <td>
                         {% if mant.estado == 'Pendiente' %}
-                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        <span class="badge badge-glow-warning">Pendiente</span>
                         {% else %}
-                            <span class="badge bg-success">Realizado</span>
+                        <span class="badge badge-glow-success">Realizado</span>
                         {% endif %}
                     </td>
-                    
+
                     <td>{{ mant.tecnico or '--' }}</td>
-                    
+
                     <td>
                         {% if mant.motivo_reprogramacion %}
-                            <span class="text-danger small" title="{{ mant.motivo_reprogramacion }}">
-                                <i class="fas fa-exclamation-triangle"></i> Sí
-                            </span>
+                        <span class="text-danger small" title="{{ mant.motivo_reprogramacion }}">
+                            <i class="fas fa-exclamation-triangle"></i> Sí
+                        </span>
                         {% else %}
-                            <span class="text-muted small">-</span>
+                        <span class="text-muted small">-</span>
                         {% endif %}
                     </td>
-                    
+
                     <td class="text-end">
                         <div class="d-flex gap-1 justify-content-end">
                             {% if mant.estado == 'Pendiente' %}
-                                <form action="{{ url_for('completar_mantenimiento', mant_id=mant.id) }}" method="POST">
-                                    <button class="btn btn-success btn-sm" title="Marcar Realizado">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                </form>
-                                
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalReprogramar{{ mant.id }}" title="Reprogramar">
-                                    <i class="fas fa-clock"></i>
+                            <form action="{{ url_for('completar_mantenimiento', mant_id=mant.id) }}" method="POST">
+                                <button class="btn btn-success btn-sm" title="Marcar Realizado">
+                                    <i class="fas fa-check"></i>
                                 </button>
+                            </form>
+
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#modalReprogramar{{ mant.id }}" title="Reprogramar">
+                                <i class="fas fa-clock"></i>
+                            </button>
                             {% endif %}
-                            
+
                             {% if session['role'] == 'admin' %}
-                                <form action="{{ url_for('eliminar_mantenimiento', mant_id=mant.id) }}" method="POST" onsubmit="return confirm('¿Borrar tarea permanentemente?');">
-                                    <button class="btn btn-outline-danger btn-sm" title="Eliminar">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
+                            <form action="{{ url_for('eliminar_mantenimiento', mant_id=mant.id) }}" method="POST"
+                                onsubmit="return confirm('¿Borrar tarea permanentemente?');">
+                                <button class="btn btn-outline-danger btn-sm" title="Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
                             {% endif %}
                         </div>
 
@@ -134,20 +145,24 @@
                                         <h5 class="modal-title">Cambiar Fecha</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
-                                    <form action="{{ url_for('reprogramar_mantenimiento', mant_id=mant.id) }}" method="POST">
+                                    <form action="{{ url_for('reprogramar_mantenimiento', mant_id=mant.id) }}"
+                                        method="POST">
                                         <div class="modal-body">
                                             <p>Tarea: <strong>{{ mant.titulo }}</strong></p>
                                             <div class="mb-3">
                                                 <label class="form-label">Nueva Fecha</label>
-                                                <input type="date" name="nueva_fecha" class="form-control" required min="{{ mant.fecha_programada }}">
+                                                <input type="date" name="nueva_fecha" class="form-control" required
+                                                    min="{{ mant.fecha_programada }}">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Motivo</label>
-                                                <textarea name="motivo" class="form-control" required placeholder="Por qué se cambia..."></textarea>
+                                                <textarea name="motivo" class="form-control" required
+                                                    placeholder="Por qué se cambia..."></textarea>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Cancelar</button>
                                             <button type="submit" class="btn btn-primary">Guardar</button>
                                         </div>
                                     </form>
@@ -161,4 +176,18 @@
         </table>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mantId = urlParams.get('id');
+        if (mantId) {
+            const modalEl = document.getElementById('modalReprogramar' + mantId);
+            if (modalEl) {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        }
+    });
+</script>
 {% endblock %}

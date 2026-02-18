@@ -1,90 +1,313 @@
 /* static/css/style.css */
 
-/* --- ESTILO GENERAL SAP (Aplicación de Escritorio) --- */
-body.sap-mode {
-    height: 100vh;
+:root {
+    --sidebar-width: 260px;
+    --sidebar-bg: #1e1e2d;
+    --sidebar-hover: #2c2c3d;
+    --sidebar-active: #3699ff;
+    --primary-color: #3699ff;
+    --secondary-color: #e4e6ef;
+    --bg-color: #f5f8fa;
+    --card-shadow: 0 0 20px 0 rgba(76, 87, 125, 0.02);
+    --transition-speed: 0.3s;
+}
+
+body {
+    background-color: var(--bg-color);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.app-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    color: #a2a3b7;
     display: flex;
     flex-direction: column;
-    margin: 0;
-    overflow: hidden; /* Mantiene el body fijo */
+    transition: all var(--transition-speed) ease;
+    z-index: 1000;
 }
 
-/* El contenedor principal ocupa el espacio restante y PERMITE SCROLL */
-.main-container {
-    flex: 1;
-    overflow-y: auto; /* ¡CORRECCIÓN IMPORTANTE! Permite bajar para ver el contenido */
-    padding-bottom: 20px;
-    width: 100%;
+.sidebar-header {
+    padding: 30px 25px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* --- BOTONES CON RELIEVE Y EFECTO HOVER --- */
-.btn {
-    transition: all 0.15s ease-in-out;
-    border-bottom: 4px solid rgba(0,0,0,0.2) !important; /* Efecto 3D */
-    font-weight: 600;
+.sidebar-logo {
+    height: 35px;
+    margin-right: 12px;
 }
 
-.btn:active {
-    transform: translateY(2px);
-    border-bottom: 2px solid rgba(0,0,0,0.2) !important;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-/* Ajustes para botones outline */
-.btn-outline-primary, .btn-outline-secondary, .btn-outline-danger {
-    border-bottom: 1px solid currentColor !important;
-}
-
-/* --- AVATARES --- */
-.avatar-circle-sm {
-    width: 25px; height: 25px;
-    background-color: #ffffff33;
-    border-radius: 50%;
-    text-align: center;
-    line-height: 25px;
-    font-size: 0.8em;
-}
-
-/* --- AJUSTES DATATABLES ENTERPRISE --- */
-.dataTables_wrapper .dataTables_filter input {
-    border-radius: 20px;
-    padding: 5px 15px;
-    border: 1px solid #ccc;
-}
-
-/* Encabezado fijo oscuro para tablas */
-table.dataTable thead th {
-    background-color: #212529;
+.sidebar-title {
     color: white;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 0;
+    letter-spacing: 0.5px;
 }
-/* --- MARCA DE AGUA (LOGO DE FONDO) --- */
-body::before {
-    content: "";
-    position: fixed; /* Se queda quieto al hacer scroll */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    
-    /* Ruta a tu logo (la .. sube de carpeta 'css' a 'static', luego entra a 'img') */
-    background-image: url('../img/logo.png'); 
-    
-    /* Configuración de la imagen */
-    background-repeat: no-repeat;
-    background-position: center center; /* Centrado perfecto */
-    background-size: 500px; /* Tamaño del logo (ajústalo si lo quieres más grande/chico) */
-    
-    /* MAGIA: Opacidad y Posición */
-    opacity: 0.05; /* 0.05 es 5% visible (muy sutil). Sube a 0.1 si lo quieres más fuerte */
-    z-index: -1;   /* Lo envía al fondo, detrás de todo */
-    
-    /* Evita que el logo capture clics */
-    pointer-events: none; 
+
+.sidebar-menu {
+    flex: 1;
+    padding: 20px 0;
+    list-style: none;
+    margin: 0;
+}
+
+.menu-item {
+    margin: 4px 15px;
+}
+
+.menu-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: #a2a3b7;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.menu-link i {
+    width: 20px;
+    margin-right: 15px;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.menu-link:hover {
+    background-color: var(--sidebar-hover);
+    color: white;
+}
+
+.menu-link.active {
+    background-color: var(--sidebar-active);
+    color: white;
+}
+
+.menu-section {
+    padding: 15px 30px 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #494b74;
+    letter-spacing: 1px;
+}
+
+/* --- MAIN CONTENT --- */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.top-bar {
+    height: 65px;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 30px;
+    box-shadow: 0 10px 30px 0 rgba(82, 63, 105, 0.05);
+    z-index: 999;
+}
+
+.content-body {
+    padding: 30px;
+    flex: 1;
+}
+
+/* --- CARDS & UI --- */
+.card {
+    border: none;
+    box-shadow: var(--card-shadow);
+    border-radius: 12px;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+.glass-card-primary {
+    border-left: 5px solid var(--primary-color);
+}
+
+.glass-card-warning {
+    border-left: 5px solid #ffc107;
+}
+
+.glass-card-danger {
+    border-left: 5px solid #dc3545;
+}
+
+.glass-card-success {
+    border-left: 5px solid #198754;
+}
+
+/* --- FLOATING ACTION BUTTON (FAB) --- */
+.fab-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1050;
+}
+
+.fab {
+    width: 60px;
+    height: 60px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 10px 25px rgba(54, 153, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: none;
+    text-decoration: none;
+}
+
+.fab:hover {
+    transform: scale(1.1) rotate(90deg);
+    background-color: #2a88e6;
+    color: white;
+}
+
+/* --- BADGES MODERNS --- */
+.badge {
+    padding: 0.5em 1em;
+    font-weight: 600;
+    border-radius: 6px;
+}
+
+.badge-glow-success {
+    box-shadow: 0 0 10px rgba(25, 135, 84, 0.4);
+    background-color: #198754 !important;
+    color: white !important;
+}
+
+.badge-glow-warning {
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.4);
+    background-color: #ffc107 !important;
+    color: #333 !important;
+}
+
+.badge-glow-danger {
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.4);
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.badge-glow-primary {
+    box-shadow: 0 0 10px rgba(13, 110, 253, 0.4);
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+.badge-glow-info {
+    box-shadow: 0 0 10px rgba(13, 202, 240, 0.4);
+    background-color: #0dcaf0 !important;
+    color: #333 !important;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.content-body {
+    padding: 30px;
+    flex: 1;
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* --- BUTTONS --- */
+.btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #2a88e6;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(54, 153, 255, 0.2);
+}
+
+/* --- AVATAR --- */
+.user-profile {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.avatar-circle {
+    width: 35px;
+    height: 35px;
+    background-color: #f3f6f9;
+    color: var(--primary-color);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-left: 10px;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 992px) {
+    .sidebar {
+        position: fixed;
+        left: -var(--sidebar-width);
+        height: 100vh;
+    }
+
+    .sidebar.show {
+        left: 0;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+}
+
+/* --- MARCA DE AGUA --- */
+.watermark {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    opacity: 0.03;
+    z-index: -1;
+    pointer-events: none;
+    max-width: 300px;
 }
