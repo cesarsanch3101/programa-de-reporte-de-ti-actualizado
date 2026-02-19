@@ -4,18 +4,18 @@ from uuid import UUID, uuid4
 from enum import Enum
 from typing import Optional
 
-class UserRole(Enum):
+class UserRole(str, Enum):
     ADMIN = "admin"
     USER = "user"
     TECNICO = "tecnico"
 
-class TicketStatus(Enum):
+class TicketStatus(str, Enum):
     ABIERTO = "Abierto"
     EN_PROCESO = "En Proceso"
     RESUELTO = "Resuelto"
     CERRADO = "Cerrado"
 
-class TicketPriority(Enum):
+class TicketPriority(str, Enum):
     BAJA = "Baja"
     MEDIA = "Media"
     ALTA = "Alta"

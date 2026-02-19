@@ -49,6 +49,48 @@ class SQLiteRepository:
                 )
         return None
 
+    def list_users(self) -> List[User]:
+        with self._get_connection() as conn:
+            rows = conn.execute("SELECT * FROM usuarios ORDER BY username").fetchall()
+            return [User(
+                id=UUID(row['id']),
+                username=row['username'],
+                email=row['email'],
+                password_hash=row['password_hash'],
+                role=UserRole(row['role']),
+                departamento=row['departamento'],
+                fecha_creacion=row['fecha_creacion']
+            ) for row in rows]
+
+    def create_user(self, user: User) -> User:
+        with self._get_connection() as conn:
+            conn.execute("""
+                INSERT INTO usuarios (id, username, email, password_hash, role, departamento)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (str(user.id), user.username, user.email, user.password_hash, 
+                  user.role.value if isinstance(user.role, UserRole) else user.role, 
+                  user.departamento))
+            conn.commit()
+        return user
+
+    def update_user(self, user: User) -> User:
+        with self._get_connection() as conn:
+            conn.execute("""
+                UPDATE usuarios 
+                SET email = ?, role = ?, password_hash = ?, departamento = ?
+                WHERE id = ?
+            """, (user.email, 
+                  user.role.value if isinstance(user.role, UserRole) else user.role, 
+                  user.password_hash, user.departamento, str(user.id)))
+            conn.commit()
+        return user
+
+    def delete_user(self, user_id: UUID) -> bool:
+        with self._get_connection() as conn:
+            cursor = conn.execute("DELETE FROM usuarios WHERE id = ?", (str(user_id),))
+            conn.commit()
+            return cursor.rowcount > 0
+
     # --- Soportes (Tickets) ---
     def create_ticket(self, ticket: Ticket) -> Ticket:
         with self._get_connection() as conn:

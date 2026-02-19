@@ -641,39 +641,63 @@ def admin_config_email():
 @app.route('/admin/usuarios')
 @admin_required
 def admin_usuarios():
-    return render_template('admin_usuarios.html', usuarios=get_db().execute("SELECT * FROM usuarios").fetchall())
+    return render_template('admin_usuarios.html', usuarios=repo.list_users())
 
 @app.route('/admin/usuarios/crear', methods=['GET', 'POST'])
 @admin_required
 def admin_crear_usuario():
     if request.method == 'POST':
         try:
-            get_db().execute("INSERT INTO usuarios (username, password_hash, role, email) VALUES (?, ?, ?, ?)",
-                       (request.form['username'], generate_password_hash(request.form['password']), request.form['role'], request.form['email']))
-            get_db().commit()
+            nuevo_usuario = User(
+                username=request.form['username'],
+                email=request.form.get('email'),
+                password_hash=generate_password_hash(request.form['password']),
+                role=UserRole(request.form.get('role', 'user')),
+                departamento=request.form.get('departamento')
+            )
+            repo.create_user(nuevo_usuario)
+            flash('Usuario creado correctamente.', 'success')
             return redirect(url_for('admin_usuarios'))
-        except: flash('Error al crear.', 'danger')
+        except Exception as e:
+            flash(f'Error al crear: {str(e)}', 'danger')
     return render_template('admin_form_usuario.html')
 
 @app.route('/admin/usuarios/editar/<user_id>', methods=['GET', 'POST'])
 @admin_required
 def admin_editar_usuario(user_id):
-    db = get_db()
-    if request.method == 'POST':
-        if request.form['password']:
-            db.execute("UPDATE usuarios SET email=?, role=?, password_hash=? WHERE id=?", (request.form['email'], request.form['role'], generate_password_hash(request.form['password']), str(user_id)))
-        else:
-            db.execute("UPDATE usuarios SET email=?, role=? WHERE id=?", (request.form['email'], request.form['role'], str(user_id)))
-        db.commit()
+    usuario = repo.get_user_by_id(UUID(user_id))
+    if not usuario:
+        flash('Usuario no encontrado.', 'danger')
         return redirect(url_for('admin_usuarios'))
-    return render_template('admin_editar_usuario.html', usuario=db.execute("SELECT * FROM usuarios WHERE id=?", (str(user_id),)).fetchone())
+
+    if request.method == 'POST':
+        try:
+            usuario.email = request.form.get('email')
+            usuario.role = UserRole(request.form.get('role', 'user'))
+            usuario.departamento = request.form.get('departamento')
+            
+            if request.form.get('password'):
+                usuario.password_hash = generate_password_hash(request.form['password'])
+            
+            repo.update_user(usuario)
+            flash('Usuario actualizado correctamente.', 'success')
+            return redirect(url_for('admin_usuarios'))
+        except Exception as e:
+            flash(f'Error al actualizar: {str(e)}', 'danger')
+            
+    return render_template('admin_editar_usuario.html', usuario=usuario)
 
 @app.route('/admin/usuarios/eliminar/<user_id>', methods=['POST'])
 @admin_required
 def admin_eliminar_usuario(user_id):
-    if str(user_id) != str(session['user_id']):
-        get_db().execute("DELETE FROM usuarios WHERE id=?", (str(user_id),))
-        get_db().commit()
+    try:
+        if str(user_id) != str(session['user_id']):
+            repo.delete_user(UUID(user_id))
+            flash('Usuario eliminado.', 'warning')
+        else:
+            flash('No puedes eliminarte a ti mismo.', 'danger')
+    except Exception as e:
+        flash(f'Error al eliminar: {str(e)}', 'danger')
     return redirect(url_for('admin_usuarios'))
 
 if __name__ == '__main__':
