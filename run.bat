@@ -38,26 +38,20 @@ IF /I "%choice%"=="S" (
     ECHO [+] Saltando verificacion de dependencias.
 )
 
-REM --- Obtener IP Local (Metodo Robusto via PowerShell) ---
-REM Buscamos la interfaz que tenga un Default Gateway activo (generalmente la de red local)
-FOR /F "usebackq tokens=*" %%i IN (`powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null }).IPv4Address[0].IPAddress"`) DO SET IP=%%i
+REM --- Obtención de IP Local (Método Ultra-Robusto) ---
+ECHO [+] Detectando IP de red para acceso remoto...
+FOR /F "usebackq tokens=*" %%i IN (`python -c "import socket; s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(('8.8.8.8', 80)); print(s.getsockname()[0]); s.close()"`) DO SET LOCAL_IP=%%i
 
-IF "%IP%"=="" (
-    REM Fallback al metodo anterior si PowerShell no devuelve nada
-    FOR /F "tokens=2 delims=:" %%a IN ('ipconfig ^| findstr "IPv4" ^| findstr [0-9]') DO (
-        SET IP=%%a
-        GOTO :found_ip
-    )
+IF "%LOCAL_IP%"=="" (
+    FOR /F "tokens=*" %%i IN ('python -c "import socket; print(socket.gethostbyname(socket.gethostname()))"') DO SET LOCAL_IP=%%i
 )
-
-:found_ip
-SET IP=%IP: =%
 
 ECHO.
 ECHO [+] Iniciando servidor Flask...
-ECHO [!] Acceso Local: http://127.0.0.1:5000
-ECHO [!] Acceso Red:   http://%IP%:5000
+ECHO [!] Acceso Local:  http://127.0.0.1:5000
+ECHO [!] Acceso Red:    http://%LOCAL_IP%:5000
 ECHO.
+ECHO [i] Otros equipos pueden entrar usando: http://%LOCAL_IP%:5000
 ECHO [i] Presiona CTRL+C para detener el servidor.
 ECHO.
 

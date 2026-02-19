@@ -379,27 +379,67 @@ body {
 }
 
 /* --- RESPONSIVE & MOBILE OPTIMIZATION --- */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1045;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.show {
+    display: block;
+    opacity: 1;
+}
+
+.overflow-hidden {
+    overflow: hidden !important;
+}
+
 @media (max-width: 992px) {
     .sidebar {
         position: fixed;
-        left: -var(--sidebar-width);
+        top: 0;
+        left: 0;
         height: 100vh;
-        z-index: 1050;
-        transition: left 0.3s ease;
+        width: var(--sidebar-width);
+        z-index: 2000;
+        /* Higher than everything else */
+        transform: translateX(-101%);
+        /* Move completely out of view */
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 10px 0 15px rgba(0, 0, 0, 0.1);
+        visibility: hidden;
+        /* Prevent interaction when hidden */
     }
 
     .sidebar.show {
-        left: 0;
+        transform: translateX(0);
+        visibility: visible;
+    }
+
+    .sidebar-overlay {
+        z-index: 1999;
+        /* Just below the sidebar */
     }
 
     .main-content {
         margin-left: 0;
+        width: 100%;
         padding-bottom: 70px;
         /* Space for bottom nav */
     }
 
     .top-bar {
-        padding: 10px 15px;
+        padding: 0 15px;
+        position: sticky;
+        top: 0;
     }
 
     .content-body {
@@ -408,6 +448,18 @@ body {
 
     .card-body {
         padding: 15px;
+    }
+
+    .fab-container {
+        bottom: 85px;
+        /* Above bottom nav */
+        right: 20px;
+    }
+
+    .fab {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
     }
 }
 
@@ -464,6 +516,37 @@ body {
 
     .top-bar h4 {
         font-size: 1rem;
+    }
+
+    /* DataTables Mobile Refinements */
+    .dataTables_wrapper .row {
+        margin: 0;
+    }
+
+    .dataTables_wrapper .col-md-6 {
+        padding: 0;
+        margin-bottom: 10px;
+    }
+
+    table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control,
+    table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control {
+        padding-left: 30px !important;
+    }
+
+    .table td,
+    .table th {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.4em 0.7em;
+    }
+
+    /* Fixed table header scroll */
+    .table-responsive {
+        border: 0;
     }
 }
 
@@ -525,4 +608,111 @@ body {
 
 [data-theme="dark"] .was-validated .form-control:valid {
     background-color: rgba(46, 213, 115, 0.05) !important;
+}
+
+/* --- OPTIMIZACIÓN DE IMPRESIÓN (PRINT) --- */
+@media print {
+    :root {
+        --bg-color: #ffffff !important;
+        --card-bg: #ffffff !important;
+        --text-color: #000000 !important;
+        --sidebar-width: 0px !important;
+        --card-shadow: none !important;
+        --border-color: #dee2e6 !important;
+    }
+
+    /* Forzar modo claro en impresión */
+    body,
+    html {
+        background-color: #fff !important;
+        color: #000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Ocultar elementos de navegación e interactivos */
+    .sidebar,
+    .top-bar,
+    .fab-container,
+    .mobile-bottom-nav,
+    .btn,
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_paginate,
+    .dataTables_info,
+    .card-header .btn,
+    #panelFiltros,
+    .watermark {
+        display: none !important;
+    }
+
+    /* Ajustar contenido principal */
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    .content-body {
+        padding: 0 !important;
+        animation: none !important;
+    }
+
+    /* Estilo de tarjetas en papel */
+    .card,
+    .glass-card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        margin-bottom: 20px !important;
+        background: #fff !important;
+    }
+
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #000 !important;
+        border-bottom: 1px solid #dee2e6 !important;
+    }
+
+    /* Tablas profesionales para impresión */
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .table th,
+    .table td {
+        border: 1px solid #dee2e6 !important;
+        padding: 8px !important;
+        color: #000 !important;
+        background-color: transparent !important;
+    }
+
+    /* Asegurar que los badges se vean pero no brillen */
+    .badge {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+
+    /* Títulos legibles */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: #000 !important;
+    }
+
+    .text-muted {
+        color: #666 !important;
+    }
+
+    /* Evitar que las filas se corten a la mitad en el salto de página */
+    tr {
+        break-inside: avoid;
+    }
 }

@@ -30,6 +30,8 @@
 
 <body>
 
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <div class="app-wrapper">
         {% if session.get('user_id') %}
         <!-- Sidebar -->
@@ -223,9 +225,38 @@
 
     <script>
         $(document).ready(function () {
-            // Sidebar Toggle
-            $('#sidebarToggle').on('click', function () {
-                $('#sidebar').toggleClass('show');
+            // Sidebar Toggle & Overlay Logic (Centralized)
+            function toggleSidebar() {
+                const sidebar = $('#sidebar');
+                const overlay = $('#sidebarOverlay');
+
+                sidebar.toggleClass('show');
+                overlay.toggleClass('show');
+                $('body').toggleClass('overflow-hidden');
+            }
+
+            // Bind all toggle triggers
+            $('#sidebarToggle, #sidebarOverlay, #mobileMenuToggle').each(function () {
+                $(this).on('click', function (e) {
+                    if ($(this).is('a')) e.preventDefault();
+                    toggleSidebar();
+                });
+            });
+
+            // Auto-close sidebar when clicking a link on mobile
+            $('.menu-link').on('click', function () {
+                if ($(window).width() <= 992 && $('#sidebar').hasClass('show')) {
+                    toggleSidebar();
+                }
+            });
+
+            // Reset UI state on desktop resize
+            $(window).on('resize', function () {
+                if ($(window).width() > 992) {
+                    $('#sidebar').removeClass('show');
+                    $('#sidebarOverlay').removeClass('show');
+                    $('body').removeClass('overflow-hidden');
+                }
             });
 
             // Global DataTables
@@ -278,7 +309,6 @@
             const toast = new bootstrap.Toast(document.getElementById('liveToast'));
 
             socket.on('new_ticket', function (data) {
-                // Solo notificar a técnicos/admin o si el usuario quiere ver alertas globales (opcional)
                 const userRole = "{{ session.get('role') }}";
                 if (userRole === 'admin' || userRole === 'tecnico') {
                     $('#toastBody').html(`<strong>#${data.numero}</strong>: ${data.titulo}`);
@@ -306,9 +336,8 @@
                 inputs.forEach(input => {
                     input.addEventListener('input', () => {
                         if (form.classList.contains('was-validated')) {
-                            // Already tried submitting, Bootstrap's CSS takes over
+                            // Already tried submitting
                         } else {
-                            // Manual live feedback before submit
                             if (!input.checkValidity()) {
                                 input.classList.add('is-invalid');
                                 input.classList.remove('is-valid');
@@ -319,12 +348,6 @@
                         }
                     });
                 });
-            });
-
-            // Mobile Menu Toggle
-            $('#mobileMenuToggle').on('click', function (e) {
-                e.preventDefault();
-                $('.sidebar').toggleClass('show');
             });
         });
     </script>

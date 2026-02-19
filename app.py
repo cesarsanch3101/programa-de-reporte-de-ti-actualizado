@@ -145,7 +145,7 @@ def dashboard():
     kpis = {
         "total_abiertos": db.execute("SELECT COUNT(*) FROM soportes WHERE estado = 'Abierto'").fetchone()[0],
         "total_en_proceso": db.execute("SELECT COUNT(*) FROM soportes WHERE estado = 'En Proceso'").fetchone()[0],
-        "mis_tickets": db.execute("SELECT COUNT(*) FROM soportes WHERE usuario_id = ?", (session['user_id'],)).fetchone()[0],
+        "mis_tickets": db.execute("SELECT COUNT(*) FROM soportes WHERE usuario_id = ? AND estado IN ('Abierto', 'En Proceso')", (session['user_id'],)).fetchone()[0],
         "mantenimientos_pendientes": db.execute("SELECT COUNT(*) FROM mantenimientos WHERE estado = 'Pendiente'").fetchone()[0]
     }
     estados_raw = db.execute("SELECT estado, COUNT(*) as cantidad FROM soportes GROUP BY estado").fetchall()

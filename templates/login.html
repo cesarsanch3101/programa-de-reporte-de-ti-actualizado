@@ -1,50 +1,149 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
+
 <head>
     <meta charset="UTF-8">
-    <title>Iniciar Sesión</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soporte TI | Iniciar Sesión</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script>
+        // Init theme immediately to prevent flashing
+        (function () {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
     <style>
-        /* Estilos específicos para la página de login */
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             height: 100vh;
-            background-color: #eef2f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
         }
-        .login-image {
-            max-width: 150px; /* Ajusta el tamaño de tu imagen/logo */
-            margin-bottom: 20px;
+
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #151521 0%, #1b1b28 100%);
+        }
+
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .login-logo {
+            width: 120px;
+            margin-bottom: 25px;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.1));
+        }
+
+        .form-floating>.form-control:focus~label,
+        .form-floating>.form-control:not(:placeholder-shown)~label {
+            color: var(--primary-color);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            margin-top: 10px;
+        }
+
+        .login-header h2 {
+            font-weight: 700;
+            color: var(--sidebar-bg);
+            margin-bottom: 5px;
+        }
+
+        [data-theme="dark"] .login-header h2 {
+            color: white;
+        }
+
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 30px;
         }
     </style>
 </head>
+
 <body>
-    <div class="form-container" style="text-align: center;">
-        
-        <img src="{{ url_for('static', filename='img/login_image.png') }}" alt="Logo de la Empresa" class="login-image">
-        
-        <h2>Iniciar Sesión</h2>
-        
+
+    <div class="card glass-card login-card border-0 text-center">
+        <div class="login-header">
+            <img src="{{ url_for('static', filename='img/login_image.png') }}" alt="Logo" class="login-logo">
+            <h2>Bienvenido</h2>
+            <p>Ingresa tus credenciales para continuar</p>
+        </div>
+
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show border-0 small mb-4" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
-        
-        <form method="post" style="text-align: left;">
-            <div class="form-group">
-                <label for="username">Usuario:</label>
-                <input type="text" id="username" name="username" required>
+
+        <form method="post" class="needs-validation" novalidate>
+            <div class="form-floating mb-3 text-start">
+                <input type="text" class="form-control border-0 bg-light" id="username" name="username"
+                    placeholder="Usuario" required>
+                <label for="username"><i class="fas fa-user me-2 opacity-50"></i>Usuario</label>
             </div>
-            <div class="form-group">
-                <label for="password">Contraseña:</label>
-                <input type="password" id="password" name="password" required>
+
+            <div class="form-floating mb-4 text-start">
+                <input type="password" class="form-control border-0 bg-light" id="password" name="password"
+                    placeholder="Contraseña" required>
+                <label for="password"><i class="fas fa-lock me-2 opacity-50"></i>Contraseña</label>
             </div>
-            <button type="submit">Entrar</button>
+
+            <button type="submit" class="btn btn-primary btn-login shadow-sm">
+                <i class="fas fa-sign-in-alt me-2"></i> Iniciar Sesión
+            </button>
         </form>
+
+        <div class="mt-4 pt-3 border-top border-light opacity-50">
+            <small class="text-muted">Desarrollado para Soporte TI</small>
+        </div>
     </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Form Validation
+        (() => {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+    </script>
 </body>
+
 </html>
