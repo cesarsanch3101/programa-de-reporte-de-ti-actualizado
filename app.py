@@ -10,6 +10,7 @@ import pandas as pd
 import io
 from flask_weasyprint import HTML, render_pdf
 from flask_mail import Mail, Message
+from flask_socketio import SocketIO, emit
 from collections import defaultdict
 
 # --- Importaciones Locales ---
@@ -31,8 +32,9 @@ app = Flask(__name__)
 app.config.from_object(config)
 app.secret_key = 'clave-secreta-cambiar-en-produccion' # O usa config.SECRET_KEY
 
-# Inicializar Mail
+# Inicializar Mail y SocketIO
 mail = Mail(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- RUTA FAVICON ---
 @app.route('/favicon.ico')
@@ -245,7 +247,15 @@ def agregar():
             flash(f'✅ Ticket creado y notificación enviada.', 'success')
         else:
             flash(f'✅ Ticket #{ticket.numero_ticket} creado.', 'success')
-        return redirect(url_for('lista_soportes'))
+            # Emitir evento en tiempo real
+            socketio.emit('new_ticket', {
+                'id': str(ticket.id),
+                'numero': ticket.numero_ticket,
+                'titulo': ticket.problema[:50] + '...',
+                'prioridad': ticket.prioridad.value
+            })
+            
+            return redirect(url_for('lista_soportes'))
     
     if session['role'] in ['admin', 'tecnico']:
         usuarios = db.execute("SELECT id, username FROM usuarios ORDER BY username").fetchall()
@@ -667,4 +677,4 @@ def admin_eliminar_usuario(user_id):
     return redirect(url_for('admin_usuarios'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)

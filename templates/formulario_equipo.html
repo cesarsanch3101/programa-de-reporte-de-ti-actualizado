@@ -10,7 +10,7 @@
                 </h4>
             </div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" class="needs-validation" novalidate>
 
                     <h5 class="text-primary border-bottom pb-2 mb-3">Información General</h5>
                     <div class="row mb-3">
@@ -19,6 +19,7 @@
                             <input type="text" name="nombre_equipo" class="form-control"
                                 value="{{ equipo.nombre_equipo if equipo else '' }}" required
                                 placeholder="Ej: LAPTOP-01">
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Tipo</label>

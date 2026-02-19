@@ -8,18 +8,20 @@
                 <h4 class="mb-0"><i class="fas fa-plus-circle"></i> Nuevo Ticket de Soporte</h4>
             </div>
             <div class="card-body p-4">
-                
-                <form method="POST" action="{{ url_for('agregar') }}">
-                    
+
+                <form method="POST" action="{{ url_for('agregar') }}" class="needs-validation" novalidate>
+
                     <div class="mb-3">
                         <label for="usuario_id" class="form-label fw-bold">¿Quién reporta el problema?</label>
                         <select class="form-select" id="usuario_id" name="usuario_id" required>
+                            <option value="" disabled>-- Selecciona un usuario --</option>
                             {% for u in usuarios %}
-                            <option value="{{ u.id }}" {% if u.id == session['user_id'] %}selected{% endif %}>
+                            <option value="{{ u.id }}" {% if u.id==session['user_id'] %}selected{% endif %}>
                                 {{ u.username }}
                             </option>
                             {% endfor %}
                         </select>
+                        <div class="invalid-feedback">Por favor, selecciona quién reporta.</div>
                         <div class="form-text">Se enviará una notificación al correo de este usuario.</div>
                     </div>
 
@@ -31,21 +33,25 @@
                                 <option value="{{ cat }}">{{ cat }}</option>
                                 {% endfor %}
                             </select>
+                            <div class="invalid-feedback">Selecciona una categoría.</div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label for="prioridad" class="form-label">Prioridad</label>
                             <select class="form-select" id="prioridad" name="prioridad" required>
                                 {% for prio in prioridades %}
-                                <option value="{{ prio }}" {% if prio == 'Media' %}selected{% endif %}>{{ prio }}</option>
+                                <option value="{{ prio }}" {% if prio=='Media' %}selected{% endif %}>{{ prio }}</option>
                                 {% endfor %}
                             </select>
+                            <div class="invalid-feedback">Selecciona la prioridad.</div>
                         </div>
                     </div>
 
                     <div class="mb-4">
                         <label for="problema" class="form-label">Descripción del Problema</label>
-                        <textarea class="form-control" id="problema" name="problema" rows="4" placeholder="Describe qué sucede..." required></textarea>
+                        <textarea class="form-control" id="problema" name="problema" rows="4"
+                            placeholder="Describe qué sucede..." required minlength="10"></textarea>
+                        <div class="invalid-feedback">Por favor, describe el problema (mínimo 10 caracteres).</div>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
