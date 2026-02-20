@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f0fdf4;
+        }
+
+        .header {
+            background-color: #15803d;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .content {
+            padding: 20px;
+            background-color: white;
+        }
+
+        .success-box {
+            background-color: #dcfce7;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #bbf7d0;
+            margin: 15px 0;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>✅ Mantenimiento Finalizado</h2>
+        </div>
+        <div class="content">
+            <p>Hola <strong>{{ usuario }}</strong>,</p>
+            <p>Te informamos que la tarea de mantenimiento para tu equipo <strong>{{ equipo }}</strong> ha sido
+                completada con éxito.</p>
+
+            <div class="success-box">
+                <p><strong>Tarea:</strong> {{ tarea }}</p>
+                <p><strong>Estado:</strong> Finalizado / Realizado</p>
+                <p><strong>Técnico:</strong> {{ tecnico }}</p>
+                {% if comentarios %}
+                <hr>
+                <p><strong>Observaciones del Técnico:</strong></p>
+                <p><em>{{ comentarios }}</em></p>
+                {% endif %}
+            </div>
+
+            <p>Gracias por tu colaboración.</p>
+        </div>
+        <div class="footer">
+            <p>Sistema de Gestión TI - Notificación Automática</p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -14,26 +14,30 @@
                         <input type="text" class="form-control" value="{{ usuario.username }}" disabled>
                         <div class="form-text">El nombre de usuario no se puede cambiar.</div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Correo Electrónico</label>
-                        <input type="email" name="email" class="form-control" value="{{ usuario.email or '' }}">
+                        <input type="email" name="email" class="form-control" value="{{ usuario.email or '' }}"
+                            multiple>
+                        <div class="form-text">Puedes ingresar varios correos separados por comas.</div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Rol del Sistema</label>
                         <select name="role" class="form-select">
-                            <option value="user" {% if usuario.role == 'user' %}selected{% endif %}>Usuario</option>
-                            <option value="tecnico" {% if usuario.role == 'tecnico' %}selected{% endif %}>Técnico</option>
-                            <option value="admin" {% if usuario.role == 'admin' %}selected{% endif %}>Administrador</option>
+                            <option value="user" {% if usuario.role=='user' %}selected{% endif %}>Usuario</option>
+                            <option value="tecnico" {% if usuario.role=='tecnico' %}selected{% endif %}>Técnico</option>
+                            <option value="admin" {% if usuario.role=='admin' %}selected{% endif %}>Administrador
+                            </option>
                         </select>
                     </div>
 
                     <hr>
-                    
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Cambiar Contraseña (Opcional)</label>
-                        <input type="password" name="password" class="form-control" placeholder="Dejar en blanco para mantener la actual">
+                        <input type="password" name="password" class="form-control"
+                            placeholder="Dejar en blanco para mantener la actual">
                     </div>
 
                     <div class="d-grid gap-2">

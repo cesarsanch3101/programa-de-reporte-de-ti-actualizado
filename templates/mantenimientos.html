@@ -116,11 +116,10 @@
                     <td class="text-end">
                         <div class="d-flex gap-1 justify-content-end">
                             {% if mant.estado == 'Pendiente' %}
-                            <form action="{{ url_for('completar_mantenimiento', mant_id=mant.id) }}" method="POST">
-                                <button class="btn btn-success btn-sm" title="Marcar Realizado">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#modalCompletar{{ mant.id }}" title="Marcar Realizado">
+                                <i class="fas fa-check"></i>
+                            </button>
 
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#modalReprogramar{{ mant.id }}" title="Reprogramar">
@@ -137,38 +136,6 @@
                             </form>
                             {% endif %}
                         </div>
-
-                        <div class="modal fade text-start" id="modalReprogramar{{ mant.id }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Cambiar Fecha</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <form action="{{ url_for('reprogramar_mantenimiento', mant_id=mant.id) }}"
-                                        method="POST">
-                                        <div class="modal-body">
-                                            <p>Tarea: <strong>{{ mant.titulo }}</strong></p>
-                                            <div class="mb-3">
-                                                <label class="form-label">Nueva Fecha</label>
-                                                <input type="date" name="nueva_fecha" class="form-control" required
-                                                    min="{{ mant.fecha_programada }}">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Motivo</label>
-                                                <textarea name="motivo" class="form-control" required
-                                                    placeholder="Por qué se cambia..."></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary"
-                                                data-bs-dismiss="modal">Cancelar</button>
-                                            <button type="submit" class="btn btn-primary">Guardar</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -176,6 +143,72 @@
         </table>
     </div>
 </div>
+
+{# Modales de Completar Mantenimiento #}
+{% for mant in mantenimientos %}
+{% if mant.estado == 'Pendiente' %}
+<div class="modal fade text-start" id="modalCompletar{{ mant.id }}" tabindex="-1"
+    aria-labelledby="modalCompletarLabel{{ mant.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ url_for('completar_mantenimiento', mant_id=mant.id) }}" method="POST" class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalCompletarLabel{{ mant.id }}"><i class="fas fa-check-circle"></i>
+                    Finalizar Mantenimiento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tarea: <strong>{{ mant.titulo }}</strong></p>
+                <p class="text-muted small">Al finalizar, se enviará una notificación al usuario asignado.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Comentarios y Observaciones</label>
+                    <textarea name="comentarios" class="form-control" rows="4" required
+                        placeholder="Describa el trabajo realizado, hallazgos o recomendaciones..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success px-4">Finalizar Tarea</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{# Modales de Reprogramación (Fuera de la tabla para evitar problemas de Z-index) #}
+{% for mant in mantenimientos %}
+{% if mant.estado == 'Pendiente' %}
+<div class="modal fade text-start" id="modalReprogramar{{ mant.id }}" tabindex="-1"
+    aria-labelledby="modalLabel{{ mant.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ url_for('reprogramar_mantenimiento', mant_id=mant.id) }}" method="POST" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel{{ mant.id }}">Cambiar Fecha de Mantenimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Tarea: <strong>{{ mant.titulo }}</strong></p>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nueva Fecha Programada</label>
+                    <input type="date" name="nueva_fecha" class="form-control" required>
+                    <div class="form-text text-muted">La fecha actual es: {{ mant.fecha_programada }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Motivo de la Reprogramación</label>
+                    <textarea name="motivo" class="form-control" rows="3" required
+                        placeholder="Explique brevemente por qué se cambia la fecha..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary px-4">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

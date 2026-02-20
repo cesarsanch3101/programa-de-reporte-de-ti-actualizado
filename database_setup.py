@@ -82,6 +82,8 @@ def crear_tablas():
             fecha_programada DATE NOT NULL,
             estado TEXT DEFAULT 'Pendiente',
             tecnico_asignado_id INTEGER,
+            motivo_reprogramacion TEXT,
+            comentarios TEXT,
             FOREIGN KEY (equipo_id) REFERENCES equipos (id) ON DELETE CASCADE,
             FOREIGN KEY (tecnico_asignado_id) REFERENCES usuarios (id) ON DELETE SET NULL
         )

@@ -130,7 +130,7 @@ class SQLiteRepository:
                 )
         return None
 
-    def list_tickets(self, filters: dict = None) -> List[TicketReadModel]:
+    def list_tickets(self, filters: Optional[dict] = None) -> List[TicketReadModel]:
         query = """
             SELECT s.*, 
                    u.username as nombre_usuario, 
@@ -150,6 +150,9 @@ class SQLiteRepository:
             if 'usuario_id' in filters:
                 query += " AND s.usuario_id = ?"
                 params.append(str(filters['usuario_id']))
+
+        # El ORDER BY debe ir después de todas las condiciones del WHERE
+        query += " ORDER BY s.fecha_creacion DESC"
 
         with self._get_connection() as conn:
             rows = conn.execute(query, params).fetchall()

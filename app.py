@@ -85,13 +85,27 @@ def send_email(to, subject, template, **kwargs):
         mail_instance = mail # Usar config por defecto (.env)
 
     try:
-        msg = Message(subject, sender=app.config.get('MAIL_USERNAME'), recipients=[to])
-        # Renderizamos el template aquí mismo
-        msg.html = render_template(template, **kwargs)
-        mail_instance.send(msg)
-        print(f"✅ Correo enviado a {to} | Asunto: {subject}")
+        # Soportar múltiples correos (coma o punto y coma)
+        raw_recipients = to.replace(';', ',').split(',')
+        recipients = [email.strip() for email in raw_recipients if email.strip()]
+        
+        if not recipients:
+            print("⚠️ No hay destinatarios válidos.")
+            return
+
+        print(f"📧 Intentando enviar correo a: {recipients}")
+        
+        # Enviamos individualmente para mayor robustez y mejor debugging
+        for recipient in recipients:
+            msg = Message(subject, sender=app.config.get('MAIL_USERNAME'), recipients=[recipient])
+            msg.html = render_template(template, **kwargs)
+            mail_instance.send(msg)
+            print(f"✅ Correo enviado a {recipient} | Asunto: {subject}")
+            
     except Exception as e:
-        print(f"⚠️ Error enviando correo: {e}")
+        print(f"⚠️ Error crítico en send_email: {e}")
+        import traceback
+        traceback.print_exc()
 
 # --- Decoradores ---
 def login_required(f):
@@ -142,16 +156,28 @@ def logout():
 @login_required
 def dashboard():
     db = get_db()
+    
+    # Base query for stats
+    base_where = ""
+    params = []
+    
+    if session.get('role') == 'user':
+        base_where = " AND usuario_id = ?"
+        params.append(session['user_id'])
+    
     kpis = {
-        "total_abiertos": db.execute("SELECT COUNT(*) FROM soportes WHERE estado = 'Abierto'").fetchone()[0],
-        "total_en_proceso": db.execute("SELECT COUNT(*) FROM soportes WHERE estado = 'En Proceso'").fetchone()[0],
+        "total_abiertos": db.execute(f"SELECT COUNT(*) FROM soportes WHERE estado = 'Abierto'{base_where}", params).fetchone()[0],
+        "total_en_proceso": db.execute(f"SELECT COUNT(*) FROM soportes WHERE estado = 'En Proceso'{base_where}", params).fetchone()[0],
         "mis_tickets": db.execute("SELECT COUNT(*) FROM soportes WHERE usuario_id = ? AND estado IN ('Abierto', 'En Proceso')", (session['user_id'],)).fetchone()[0],
         "mantenimientos_pendientes": db.execute("SELECT COUNT(*) FROM mantenimientos WHERE estado = 'Pendiente'").fetchone()[0]
     }
-    estados_raw = db.execute("SELECT estado, COUNT(*) as cantidad FROM soportes GROUP BY estado").fetchall()
+    
+    estados_raw = db.execute(f"SELECT estado, COUNT(*) as cantidad FROM soportes WHERE 1=1{base_where} GROUP BY estado", params).fetchall()
     grafico_estado = {"labels": [r['estado'] for r in estados_raw], "datos": [r['cantidad'] for r in estados_raw]}
-    cats_raw = db.execute("SELECT categoria, COUNT(*) as cantidad FROM soportes GROUP BY categoria ORDER BY cantidad DESC").fetchall()
+    
+    cats_raw = db.execute(f"SELECT categoria, COUNT(*) as cantidad FROM soportes WHERE 1=1{base_where} GROUP BY categoria ORDER BY cantidad DESC", params).fetchall()
     grafico_cat = {"labels": [r['categoria'] for r in cats_raw], "datos": [r['cantidad'] for r in cats_raw]}
+    
     return render_template('dashboard.html', kpis=kpis, g_estado=grafico_estado, g_cat=grafico_cat)
 
 # --- TICKETS ---
@@ -160,56 +186,32 @@ def dashboard():
 def lista_soportes():
     db = get_db()
     
-    # Filtros
-    f_inicio = request.args.get('fecha_inicio')
-    f_fin = request.args.get('fecha_fin')
-    f_categoria = request.args.get('categoria')
-    f_prioridad = request.args.get('prioridad')
+    # Filtros de búsqueda
     f_estado = request.args.get('estado')
-    f_tecnico = request.args.get('tecnico_id')
-
-    query = """
-        SELECT s.*, u.username as nombre_usuario, t.username as nombre_tecnico 
-        FROM soportes s 
-        JOIN usuarios u ON s.usuario_id = u.id 
-        LEFT JOIN usuarios t ON s.tecnico_id = t.id 
-        WHERE 1=1
-    """
-    params = []
     
-    if session['role'] == 'user':
-        query += " AND s.usuario_id = ?"
-        params.append(session['user_id'])
-    
-    if f_inicio and f_fin:
-        query += " AND date(s.fecha_creacion) BETWEEN ? AND ?"
-        params.extend([f_inicio, f_fin])
-    if f_categoria and f_categoria != 'Todos':
-        query += " AND s.categoria = ?"
-        params.append(f_categoria)
-    if f_prioridad and f_prioridad != 'Todos':
-        query += " AND s.prioridad = ?"
-        params.append(f_prioridad)
+    # Construir filtros para el repositorio
+    filters = {}
     if f_estado and f_estado != 'Todos':
-        query += " AND s.estado = ?"
-        params.append(f_estado)
-    if f_tecnico and f_tecnico != 'Todos':
-        query += " AND s.tecnico_id = ?"
-        params.append(f_tecnico)
+        filters['estado'] = f_estado
     
-    # query += """ ORDER BY CASE WHEN s.estado IN ('Abierto', 'En Proceso') THEN 0 ELSE 1 END ASC, s.fecha_creacion DESC """
+    # RESTRICCIÓN DE VISIBILIDAD: Solo los usuarios estándar ven solo sus propios tickets
+    # Administradores y Técnicos ven todo.
+    if session.get('role') == 'user':
+        filters['usuario_id'] = session['user_id']
     
-    # tickets = db.execute(query, params).fetchall()
+    # Obtener tickets usando el servicio con los filtros aplicados
+    tickets = ticket_service.repository.list_tickets(filters=filters)
     
-    # Using the new service (filtered list)
-    tickets = ticket_service.repository.list_tickets(filters={'estado': f_estado} if f_estado and f_estado != 'Todos' else {})
-    
-    # Calculate stats for banner
+    # Calcular estadísticas para el banner (también respetando la visibilidad)
+    stats_filters = {}
+    if session.get('role') == 'user':
+        stats_filters['usuario_id'] = session['user_id']
+        
     stats = {
-        'total': len(ticket_service.repository.list_tickets()),
-        'abiertos': len(ticket_service.repository.list_tickets({'estado': 'Abierto'})),
-        'en_proceso': len(ticket_service.repository.list_tickets({'estado': 'En Proceso'})),
-        'resueltos': len(ticket_service.repository.list_tickets({'estado': 'Resuelto'}))
+        'total': len(ticket_service.repository.list_tickets(stats_filters)),
+        'abiertos': len(ticket_service.repository.list_tickets({**stats_filters, 'estado': 'Abierto'})),
+        'en_proceso': len(ticket_service.repository.list_tickets({**stats_filters, 'estado': 'En Proceso'})),
+        'resueltos': len(ticket_service.repository.list_tickets({**stats_filters, 'estado': 'Resuelto'}))
     }
     
     tecnicos = db.execute("SELECT id, username FROM usuarios WHERE role IN ('admin', 'tecnico')").fetchall()
@@ -247,15 +249,16 @@ def agregar():
             flash(f'✅ Ticket creado y notificación enviada.', 'success')
         else:
             flash(f'✅ Ticket #{ticket.numero_ticket} creado.', 'success')
-            # Emitir evento en tiempo real
-            socketio.emit('new_ticket', {
-                'id': str(ticket.id),
-                'numero': ticket.numero_ticket,
-                'titulo': ticket.problema[:50] + '...',
-                'prioridad': ticket.prioridad.value
-            })
             
-            return redirect(url_for('lista_soportes'))
+        # Emitir evento en tiempo real (para todos los casos)
+        socketio.emit('new_ticket', {
+            'id': str(ticket.id),
+            'numero': ticket.numero_ticket,
+            'titulo': ticket.problema[:50] + '...',
+            'prioridad': ticket.prioridad.value
+        })
+        
+        return redirect(url_for('lista_soportes'))
     
     if session['role'] in ['admin', 'tecnico']:
         usuarios = db.execute("SELECT id, username FROM usuarios ORDER BY username").fetchall()
@@ -608,8 +611,39 @@ def mover_mantenimiento():
 @login_required
 def completar_mantenimiento(mant_id):
     if session['role'] == 'user': return redirect(url_for('dashboard'))
-    get_db().execute("UPDATE mantenimientos SET estado = 'Realizado', tecnico_asignado_id = ? WHERE id = ?", (session['user_id'], str(mant_id)))
-    get_db().commit()
+    
+    comentarios = request.form.get('comentarios', '')
+    
+    db = get_db()
+    db.execute("UPDATE mantenimientos SET estado = 'Realizado', tecnico_asignado_id = ?, comentarios = ? WHERE id = ?", 
+               (session['user_id'], comentarios, str(mant_id)))
+    db.commit()
+    
+    # Notificar al dueño del equipo
+    datos = db.execute("""
+        SELECT u.email, u.username, e.nombre_equipo, m.titulo, t.username as tecnico
+        FROM mantenimientos m
+        JOIN equipos e ON m.equipo_id = e.id
+        JOIN usuarios u ON e.usuario_asignado_id = u.id
+        JOIN usuarios t ON t.id = ?
+        WHERE m.id = ?
+    """, (session['user_id'], str(mant_id))).fetchone()
+    
+    if datos and datos['email']:
+        send_email(
+            to=datos['email'],
+            subject="✅ Mantenimiento Finalizado",
+            template='email_mantenimiento_completado.html',
+            usuario=datos['username'], 
+            equipo=datos['nombre_equipo'], 
+            tarea=datos['titulo'], 
+            tecnico=datos['tecnico'],
+            comentarios=comentarios
+        )
+        flash('Tarea completada y usuario notificado.', 'success')
+    else:
+        flash('Tarea completada.', 'success')
+        
     return redirect(url_for('lista_mantenimientos'))
 
 @app.route('/mantenimientos/eliminar/<mant_id>', methods=['POST'])
