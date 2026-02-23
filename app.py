@@ -222,7 +222,7 @@ def agregar():
         
         if usuario_reporta and usuario_reporta.email:
             # Enviamos al usuario y al administrador de TI
-            recipients = f"{usuario_reporta['email']}, admin@stwards.com"
+            recipients = f"{usuario_reporta.email}, admin@stwards.com"
             send_email(
                 to=recipients, 
                 subject=f"Ticket #{ticket.numero_ticket} Creado", 
@@ -526,23 +526,6 @@ def programar_mantenimiento():
 def reprogramar_mantenimiento(mant_id):
     if session['role'] == 'user': return redirect(url_for('dashboard'))
     
-    nueva_fecha = request.form['nueva_fecha']
-    motivo = request.form['motivo']
-    
-    db = get_db()
-    db.execute("UPDATE mantenimientos SET fecha_programada = ?, motivo_reprogramacion = ? WHERE id = ?", 
-               (nueva_fecha, motivo, str(mant_id)))
-    db.commit()
-    
-    # Notificar usando send_email
-    datos = db.execute("""
-        SELECT u.email, u.username, e.nombre_equipo, m.titulo 
-        FROM mantenimientos m
-        JOIN equipos e ON m.equipo_id = e.id
-        JOIN usuarios u ON e.usuario_asignado_id = u.id
-        WHERE m.id = ?
-    """, (mant_id,)).fetchone()
-    
     nova_fecha = request.form['nueva_fecha']
     motivo = request.form['motivo']
     
@@ -575,7 +558,7 @@ def reprogramar_mantenimiento(mant_id):
     else:
         flash('Reprogramado.', 'success')
         
-    return redirect(url_for('lista_mantenimientos'))
+    return redirect(url_for('lista_soportes'))
 
 @app.route('/api/mantenimientos/mover', methods=['POST'])
 @admin_required
@@ -606,20 +589,6 @@ def mover_mantenimiento():
                     nueva_fecha=nueva_fecha,
                     motivo=motivo
                 )
-    
-    return jsonify({'status': 'success'})
-    
-    if datos and datos['email']:
-        send_email(
-            to=datos['email'],
-            subject="📅 Cambio en Mantenimiento",
-            template='email_mantenimiento_cambio.html',
-            usuario=datos['username'], 
-            equipo=datos['nombre_equipo'], 
-            tarea=datos['titulo'], 
-            nueva_fecha=nueva_fecha,
-            motivo=motivo
-        )
     
     return jsonify({'status': 'success'})
 
