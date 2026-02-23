@@ -18,6 +18,8 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
 
     <script>
         // Init theme immediately to prevent flashing
@@ -209,6 +211,7 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <!-- DataTables JS -->
@@ -306,17 +309,71 @@
 
             // Socket.IO Real-time Notifications
             const socket = io();
+            console.log("🔌 Intentando conectar con Socket.IO...");
+
+            socket.on('connect', () => {
+                console.log("✅ Conectado a Socket.IO con ID:", socket.id);
+            });
+
             const toast = new bootstrap.Toast(document.getElementById('liveToast'));
 
             socket.on('new_ticket', function (data) {
+                console.log("📩 Se recibió un nuevo ticket vía Socket.IO:", data);
                 const userRole = "{{ session.get('role') }}";
+                console.log("👤 Rol de usuario actual:", userRole);
+
                 if (userRole === 'admin' || userRole === 'tecnico') {
+                    // Actualizar Toast (Notificación discreta)
                     $('#toastBody').html(`<strong>#${data.numero}</strong>: ${data.titulo}`);
                     toast.show();
 
-                    // Opcional: Sonido sutil
-                    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
-                    audio.play().catch(e => console.log("Audio block by browser"));
+                    // Alerta SweetAlert2 (Pop-up proactivo)
+                    Swal.fire({
+                        title: '¡Nuevo Ticket Recibido!',
+                        html: `Se ha creado el ticket <b>#${data.numero}</b><br><small>${data.titulo}</small>`,
+                        icon: 'info',
+                        toast: false,
+                        position: 'center',
+                        showConfirmButton: true,
+                        confirmButtonText: '<i class="fas fa-eye"></i> Ver Ticket',
+                        confirmButtonColor: '#3699ff',
+                        showCancelButton: true,
+                        cancelButtonText: 'Cerrar',
+                        timer: 15000,
+                        timerProgressBar: true,
+                        background: 'var(--card-bg)',
+                        color: 'var(--text-color)', // Corregido de --text-main
+                        didOpen: () => {
+                            // Sonido sutil
+                            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+                            audio.play().catch(e => console.log("Audio block by browser"));
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = "{{ url_for('lista_soportes') }}";
+                        }
+                    });
+
+                    // Auto-refrescar si estamos en la lista de soportes o dashboard
+                    const path = window.location.pathname;
+                    const isTicketPage = path.includes('/soportes') || path.includes('/dashboard') || path === '/';
+                    const hasTicketsTable = $('.tabla-enterprise').length > 0;
+
+                    console.log("📍 Ruta actual:", path);
+                    console.log("🔍 ¿Es página de tickets/dashboard?:", isTicketPage);
+                    console.log("📊 ¿Existe la tabla de tickets?:", hasTicketsTable);
+
+                    if (isTicketPage || hasTicketsTable) {
+                        console.log("🔄 Programando refresco de página en 3s...");
+                        setTimeout(() => {
+                            console.log("🚀 Ejecutando location.reload() AHORA.");
+                            window.location.reload(true); // Forzar recarga
+                        }, 3000);
+                    } else {
+                        console.log("ℹ️ No se refresca: No se detectó ruta de datos ni tabla activa.");
+                    }
+                } else {
+                    console.log("ℹ️ Notificación recibida pero ignorada por el rol del usuario (Rol actual: {{ session.get('role') }}).");
                 }
             });
 

@@ -40,3 +40,4 @@ python-dotenv
 email_validator
 flask-socketio
 eventlet
+gunicorn

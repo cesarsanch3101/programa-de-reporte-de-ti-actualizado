@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  it-support-app:
+    build: .
+    container_name: it-support-reporting
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persistencia de la base de datos
+      - ./soportes_v2.db:/app/soportes_v2.db
+      # Persistencia de los archivos adjuntos
+      - ./static/uploads:/app/static/uploads
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

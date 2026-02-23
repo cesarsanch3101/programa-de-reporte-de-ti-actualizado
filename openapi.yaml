@@ -4,11 +4,12 @@ info:
   description: API contract for the IT Support Reporting application, following enterprise standards.
   version: 1.0.0
 servers:
-  - url: http://localhost:5000/api/v1
+  - url: http://localhost:5000
 paths:
   /tickets:
     get:
       summary: List all tickets
+      tags: [Tickets]
       parameters:
         - name: estado
           in: query
@@ -29,18 +30,25 @@ paths:
                   $ref: '#/components/schemas/Ticket'
     post:
       summary: Create a new ticket
+      tags: [Tickets]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TicketCreate'
+              type: object
+              properties:
+                usuario_id: {type: string, format: uuid}
+                problema: {type: string}
+                categoria: {type: string}
+                prioridad: {type: string}
       responses:
         '201':
           description: Ticket created
   /tickets/{id}:
     get:
       summary: Get ticket details
+      tags: [Tickets]
       parameters:
         - name: id
           in: path
@@ -53,6 +61,7 @@ paths:
           description: Ticket details
     patch:
       summary: Update ticket status or solution
+      tags: [Tickets]
       parameters:
         - name: id
           in: path
@@ -69,6 +78,30 @@ paths:
         '200':
           description: Ticket updated
 
+  /equipos:
+    get:
+      summary: List all equipment
+      tags: [Inventory]
+      responses:
+        '200':
+          description: A list of equipment
+
+  /mantenimientos:
+    get:
+      summary: List all scheduled maintenance
+      tags: [Maintenance]
+      responses:
+        '200':
+          description: List of maintenance tasks
+
+  /api/eventos:
+    get:
+      summary: Get maintenance events for calendar
+      tags: [Maintenance]
+      responses:
+        '200':
+          description: Array of calendar events
+
 components:
   schemas:
     Ticket:
@@ -77,33 +110,17 @@ components:
         id:
           type: string
           format: uuid
+        numero_ticket:
+          type: integer
         problema:
           type: string
         estado:
           type: string
-          enum: [Abierto, En Proceso, Resuelto, Cerrado]
         prioridad:
           type: string
-          enum: [Baja, Media, Alta, Urgente]
         fecha_creacion:
           type: string
           format: date-time
-        usuario_id:
-          type: string
-          format: uuid
-        tecnico_id:
-          type: string
-          format: uuid
-    TicketCreate:
-      type: object
-      required: [problema, categoria, prioridad]
-      properties:
-        problema:
-          type: string
-        categoria:
-          type: string
-        prioridad:
-          type: string
     TicketUpdate:
       type: object
       properties:

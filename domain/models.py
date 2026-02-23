@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -20,6 +20,7 @@ class TicketPriority(str, Enum):
     MEDIA = "Media"
     ALTA = "Alta"
     URGENTE = "Urgente"
+
 
 @dataclass
 class User:

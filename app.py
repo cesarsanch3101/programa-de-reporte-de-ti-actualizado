@@ -11,6 +11,7 @@ import io
 from flask_weasyprint import HTML, render_pdf
 from flask_mail import Mail, Message
 from flask_socketio import SocketIO, emit
+
 from collections import defaultdict
 
 # --- Importaciones Locales ---
@@ -55,17 +56,16 @@ def close_db(exception):
     if db is not None:
         db.close()
 
+
 # --- FUNCION DE CORREO UNIFICADA (LA QUE SI FUNCIONA) ---
 def send_email(to, subject, template, **kwargs):
     if not to: return
 
-    db = get_db()
     # Cargamos configuración de la DB
-    config_rows = db.execute("SELECT clave, valor FROM configuracion WHERE clave LIKE 'MAIL_%'").fetchall()
+    config_dict_db = repo.get_config_by_prefix('MAIL_')
     
     # Actualizamos la app con lo que haya en la DB
-    if config_rows:
-        config_dict_db = {row['clave']: row['valor'] for row in config_rows}
+    if config_dict_db:
         # Limpieza básica de espacios
         for key, val in config_dict_db.items():
             if isinstance(val, str):
@@ -155,28 +155,12 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    db = get_db()
+    role = session.get('role')
+    user_id = UUID(str(session['user_id']))
     
-    # Base query for stats
-    base_where = ""
-    params = []
-    
-    if session.get('role') == 'user':
-        base_where = " AND usuario_id = ?"
-        params.append(session['user_id'])
-    
-    kpis = {
-        "total_abiertos": db.execute(f"SELECT COUNT(*) FROM soportes WHERE estado = 'Abierto'{base_where}", params).fetchone()[0],
-        "total_en_proceso": db.execute(f"SELECT COUNT(*) FROM soportes WHERE estado = 'En Proceso'{base_where}", params).fetchone()[0],
-        "mis_tickets": db.execute("SELECT COUNT(*) FROM soportes WHERE usuario_id = ? AND estado IN ('Abierto', 'En Proceso')", (session['user_id'],)).fetchone()[0],
-        "mantenimientos_pendientes": db.execute("SELECT COUNT(*) FROM mantenimientos WHERE estado = 'Pendiente'").fetchone()[0]
-    }
-    
-    estados_raw = db.execute(f"SELECT estado, COUNT(*) as cantidad FROM soportes WHERE 1=1{base_where} GROUP BY estado", params).fetchall()
-    grafico_estado = {"labels": [r['estado'] for r in estados_raw], "datos": [r['cantidad'] for r in estados_raw]}
-    
-    cats_raw = db.execute(f"SELECT categoria, COUNT(*) as cantidad FROM soportes WHERE 1=1{base_where} GROUP BY categoria ORDER BY cantidad DESC", params).fetchall()
-    grafico_cat = {"labels": [r['categoria'] for r in cats_raw], "datos": [r['cantidad'] for r in cats_raw]}
+    kpis = repo.get_dashboard_kpis(role, user_id)
+    grafico_estado = repo.get_status_distribution(role, user_id)
+    grafico_cat = repo.get_category_distribution(role, user_id)
     
     return render_template('dashboard.html', kpis=kpis, g_estado=grafico_estado, g_cat=grafico_cat)
 
@@ -214,7 +198,7 @@ def lista_soportes():
         'resueltos': len(ticket_service.repository.list_tickets({**stats_filters, 'estado': 'Resuelto'}))
     }
     
-    tecnicos = db.execute("SELECT id, username FROM usuarios WHERE role IN ('admin', 'tecnico')").fetchall()
+    tecnicos = repo.list_users(filters={'roles': ['admin', 'tecnico']})
     
     return render_template('lista_soportes.html', soportes=tickets, tecnicos=tecnicos, stats=stats, categorias=CATEGORIAS, prioridades=PRIORIDADES, estados=ESTADOS)
 
@@ -234,20 +218,30 @@ def agregar():
         
         ticket = repo.create_ticket(nuevo_ticket)
         
-        db = get_db()
-        usuario_reporta = db.execute("SELECT email, username FROM usuarios WHERE id = ?", (str(usuario_reporta_id),)).fetchone()
+        usuario_reporta = repo.get_user_by_id(usuario_reporta_id)
         
-        if usuario_reporta and usuario_reporta['email']:
+        if usuario_reporta and usuario_reporta.email:
+            # Enviamos al usuario y al administrador de TI
+            recipients = f"{usuario_reporta['email']}, admin@stwards.com"
             send_email(
-                to=usuario_reporta['email'], 
+                to=recipients, 
                 subject=f"Ticket #{ticket.numero_ticket} Creado", 
                 template='email_nuevo_ticket.html', 
-                usuario=usuario_reporta['username'], 
+                usuario=usuario_reporta.username, 
                 ticket_id=ticket.numero_ticket, # Using sequential ID 
                 problema=ticket.problema
             )
             flash(f'✅ Ticket creado y notificación enviada.', 'success')
         else:
+            # Si el usuario no tiene correo, al menos notificamos al admin
+            send_email(
+                to="admin@stwards.com",
+                subject=f"Nuevo Ticket #{ticket.numero_ticket} - Notificación Admin",
+                template='email_nuevo_ticket.html',
+                usuario=usuario_reporta.username if usuario_reporta else "Usuario",
+                ticket_id=ticket.numero_ticket,
+                problema=ticket.problema
+            )
             flash(f'✅ Ticket #{ticket.numero_ticket} creado.', 'success')
             
         # Emitir evento en tiempo real (para todos los casos)
@@ -261,7 +255,7 @@ def agregar():
         return redirect(url_for('lista_soportes'))
     
     if session['role'] in ['admin', 'tecnico']:
-        usuarios = db.execute("SELECT id, username FROM usuarios ORDER BY username").fetchall()
+        usuarios = repo.list_users()
     else:
         usuarios = [{"id": session['user_id'], "username": session['username']}]
     return render_template('agregar.html', categorias=CATEGORIAS, prioridades=PRIORIDADES, usuarios=usuarios)
@@ -286,13 +280,14 @@ def editar(ticket_id):
             repo.update_ticket(ticket)
             flash('Ticket actualizado.', 'success')
         else:
+            estado_anterior = ticket.estado
             estado_nuevo_str = request.form.get('estado')
             solucion = request.form.get('solucion')
             tecnico_id_str = request.form.get('tecnico_id')
             
             if estado_nuevo_str in ['Resuelto', 'Cerrado'] and not solucion:
                 flash('⚠️ Para cerrar el ticket, debes documentar la solución.', 'warning')
-                tecnicos = db.execute("SELECT id, username FROM usuarios WHERE role IN ('admin', 'tecnico')").fetchall()
+                tecnicos = repo.list_users(filters={'roles': ['admin', 'tecnico']})
                 return render_template('editar.html', ticket=ticket, tecnicos=tecnicos, estados=ESTADOS, categorias=CATEGORIAS, prioridades=PRIORIDADES)
             
             ticket.estado = TicketStatus(estado_nuevo_str)
@@ -302,24 +297,35 @@ def editar(ticket_id):
             
             repo.update_ticket(ticket)
             
-            # Notificación de cierre (comparando con el estado anterior si es posible o simplemente si el nuevo es final)
-            if ticket.estado in [TicketStatus.RESUELTO, TicketStatus.CERRADO]:
-                usuario_dueno = db.execute("SELECT email, username FROM usuarios WHERE id = ?", (str(ticket.usuario_id),)).fetchone()
+            # --- NOTIFICACIONES POR CAMBIO DE ESTADO ---
+            if ticket.estado != estado_anterior:
+                usuario_dueno = repo.get_user_by_id(ticket.usuario_id)
                 
-                if usuario_dueno and usuario_dueno['email']:
-                    send_email(
-                        to=usuario_dueno['email'], 
-                        subject=f"✅ Ticket #{ticket.numero_ticket} Finalizado", 
-                        template='email_cierre_ticket.html',
-                        usuario=usuario_dueno['username'],
-                        ticket_id=ticket.numero_ticket, # Usamos el número secuencial
-                        problema=ticket.problema,
-                        solucion=solucion,
-                        tecnico=session['username']
-                    )
-                    flash(f'Ticket cerrado y notificación enviada.', 'success')
+                if usuario_dueno and usuario_dueno.email:
+                    # Si ya está resuelto/cerrado, usamos la plantilla de cierre detallada
+                    if ticket.estado in [TicketStatus.RESUELTO, TicketStatus.CERRADO]:
+                        send_email(
+                            to=usuario_dueno.email, 
+                            subject=f"✅ Ticket #{ticket.numero_ticket} Finalizado", 
+                            template='email_cierre_ticket.html',
+                            usuario=usuario_dueno.username,
+                            ticket_id=ticket.numero_ticket,
+                            problema=ticket.problema,
+                            solucion=solucion,
+                            tecnico=session['username']
+                        )
+                    else:
+                        # Para estados intermedios (ej: En Proceso), usamos la plantilla de actualización
+                        send_email(
+                            to=usuario_dueno.email,
+                            subject=f"⚡ Actualización de Ticket #{ticket.numero_ticket}",
+                            template='email_actualizacion_soporte.html',
+                            ticket={'usuario': usuario_dueno.username, 'id': ticket.numero_ticket, 'solucion': solucion, 'tecnico': session['username']},
+                            nuevo_estado=ticket.estado.value
+                        )
+                    flash(f'Notificación enviada al usuario ({ticket.estado.value}).', 'success')
                 else:
-                    flash('Ticket cerrado.', 'success')
+                    flash(f'Estado actualizado a {ticket.estado.value}.', 'success')
             else:
                 flash('Gestión actualizada.', 'success')
 
@@ -343,20 +349,17 @@ def lista_equipos():
     equipos = repo.list_equipos()
     
     # Adding username manually for now or via a ReadModel if preferred
-    # Since we want to display the assigned user name:
-    equipos_with_users = []
+    equipos = repo.list_equipos()
+    # Enriquecemos con los nombres de usuario
     for e in equipos:
-        user_name = None
         if e.usuario_asignado_id:
-            u = db.execute("SELECT username FROM usuarios WHERE id = ?", (str(e.usuario_asignado_id),)).fetchone()
-            user_name = u['username'] if u else None
-        
-        # We can add a temporary attribute or use a ReadModel
-        setattr(e, 'usuario_asignado', user_name)
-        equipos_with_users.append(e)
+            user = repo.get_user_by_id(e.usuario_asignado_id)
+            setattr(e, 'usuario_asignado', user.username if user else None)
+        else:
+            setattr(e, 'usuario_asignado', None)
 
-    tipos = db.execute("SELECT DISTINCT tipo FROM equipos WHERE tipo IS NOT NULL").fetchall()
-    return render_template('lista_equipos.html', equipos=equipos_with_users, tipos=tipos)
+    tipos = list(set([e.tipo for e in equipos if e.tipo]))
+    return render_template('lista_equipos.html', equipos=equipos, tipos=tipos)
 
 @app.route('/equipos/ver/<equipo_id>')
 @login_required
@@ -366,14 +369,13 @@ def ver_equipo(equipo_id):
         flash('Equipo no encontrado.', 'danger')
         return redirect(url_for('lista_equipos'))
     
-    db = get_db()
-    # Add assigned user name for the view
     if equipo.usuario_asignado_id:
-        u = db.execute("SELECT username, departamento FROM usuarios WHERE id = ?", (str(equipo.usuario_asignado_id),)).fetchone()
-        setattr(equipo, 'usuario_asignado', u['username'] if u else None)
-        setattr(equipo, 'departamento', u['departamento'] if u else None)
+        user = repo.get_user_by_id(equipo.usuario_asignado_id)
+        if user:
+            setattr(equipo, 'usuario_asignado', user.username)
+            setattr(equipo, 'departamento', user.departamento)
 
-    historial = db.execute("SELECT * FROM mantenimientos WHERE equipo_id = ? ORDER BY fecha_programada DESC", (str(equipo_id),)).fetchall()
+    historial = repo.list_mantenimientos(filters={'equipo_id': equipo_id})
     return render_template('ver_equipo.html', equipo=equipo, historial=historial)
 
 @app.route('/equipos/gestion', methods=['GET', 'POST'])
@@ -424,47 +426,34 @@ def gestion_equipo(equipo_id=None):
         except sqlite3.IntegrityError:
             flash('Error: El nombre del equipo o serie ya existe.', 'danger')
 
-    usuarios = db.execute("SELECT id, username FROM usuarios").fetchall()
+    usuarios = repo.list_users()
     return render_template('formulario_equipo.html', equipo=equipo, usuarios=usuarios)
 
 @app.route('/equipos/eliminar/<equipo_id>', methods=['POST'])
 @admin_required
 def eliminar_equipo(equipo_id):
-    get_db().execute("DELETE FROM equipos WHERE id = ?", (str(equipo_id),))
-    get_db().commit()
+    repo.delete_equipment(UUID(equipo_id))
     return redirect(url_for('lista_equipos'))
 
 # --- MANTENIMIENTOS (USANDO SEND_EMAIL UNIFICADO) ---
 @app.route('/mantenimientos')
 @login_required
 def lista_mantenimientos():
-    db = get_db()
     f_inicio = request.args.get('fecha_inicio')
     f_fin = request.args.get('fecha_fin')
     f_estado = request.args.get('estado')
     f_equipo = request.args.get('equipo_id')
-
-    query = """
-        SELECT m.*, e.nombre_equipo, u.username as tecnico 
-        FROM mantenimientos m 
-        JOIN equipos e ON m.equipo_id = e.id
-        LEFT JOIN usuarios u ON m.tecnico_asignado_id = u.id 
-        WHERE 1=1
-    """
-    params = []
+    filters = {}
     if f_inicio and f_fin:
-        query += " AND m.fecha_programada BETWEEN ? AND ?"
-        params.extend([f_inicio, f_fin])
+        filters['fecha_inicio'] = f_inicio
+        filters['fecha_fin'] = f_fin
     if f_estado and f_estado != 'Todos':
-        query += " AND m.estado = ?"
-        params.append(f_estado)
+        filters['estado'] = f_estado
     if f_equipo and f_equipo != 'Todos':
-        query += " AND m.equipo_id = ?"
-        params.append(f_equipo)
-    query += " ORDER BY m.fecha_programada ASC"
+        filters['equipo_id'] = f_equipo
 
-    mantenimientos = db.execute(query, params).fetchall()
-    equipos = db.execute("SELECT id, nombre_equipo FROM equipos ORDER BY nombre_equipo").fetchall()
+    mantenimientos = repo.list_mantenimientos(filters)
+    equipos = repo.list_equipos()
     return render_template('mantenimientos.html', mantenimientos=mantenimientos, equipos=equipos)
 
 @app.route('/calendario')
@@ -475,13 +464,11 @@ def ver_calendario():
 @app.route('/api/eventos')
 @login_required
 def api_eventos():
-    db = get_db()
-    eventos_db = db.execute("SELECT m.id, m.titulo, m.fecha_programada, m.estado, e.nombre_equipo FROM mantenimientos m JOIN equipos e ON m.equipo_id = e.id").fetchall()
+    eventos_db = repo.list_mantenimientos()
     eventos = []
     for ev in eventos_db:
         color = '#ffc107' if ev['estado'] == 'Pendiente' else '#198754'
         text_color = '#000000' if ev['estado'] == 'Pendiente' else '#ffffff'
-        # Redirect to maintenance list, but we could eventually point to a detail view
         eventos.append({
             'id': str(ev['id']), 
             'title': f"{ev['nombre_equipo']}: {ev['titulo']}", 
@@ -505,31 +492,33 @@ def programar_mantenimiento():
         equipo_id = request.form['equipo_id']
         titulo = request.form['titulo']
         fecha = request.form['fecha_programada']
+        mant_id = str(uuid.uuid4())
         
-        db.execute("INSERT INTO mantenimientos (id, equipo_id, titulo, fecha_programada, estado) VALUES (?, ?, ?, ?, 'Pendiente')",
-                   (str(uuid.uuid4()), str(equipo_id), titulo, fecha))
-        db.commit()
+        repo.create_maintenance(mant_id, equipo_id, titulo, fecha)
         
         # Notificar usando send_email
-        datos = db.execute("SELECT u.email, u.username, e.nombre_equipo FROM equipos e JOIN usuarios u ON e.usuario_asignado_id = u.id WHERE e.id = ?", (str(equipo_id),)).fetchone()
-        
-        if datos and datos['email']:
-            send_email(
-                to=datos['email'],
-                subject="🔧 Mantenimiento Programado",
-                template='email_mantenimiento_nuevo.html', 
-                usuario=datos['username'], 
-                equipo=datos['nombre_equipo'], 
-                tarea=titulo, 
-                fecha=fecha
-            )
-            flash('Mantenimiento programado y notificación enviada.', 'success')
+        equipo = repo.get_equipment_by_id(UUID(equipo_id))
+        if equipo and equipo.usuario_asignado_id:
+            user = repo.get_user_by_id(equipo.usuario_asignado_id)
+            if user and user.email:
+                send_email(
+                    to=user.email,
+                    subject="🔧 Mantenimiento Programado",
+                    template='email_mantenimiento_nuevo.html', 
+                    usuario=user.username, 
+                    equipo=equipo.nombre_equipo, 
+                    tarea=titulo, 
+                    fecha=fecha
+                )
+                flash('Mantenimiento programado y notificación enviada.', 'success')
+            else:
+                flash('Mantenimiento programado.', 'success')
         else:
             flash('Mantenimiento programado.', 'success')
             
         return redirect(url_for('lista_mantenimientos'))
     
-    equipos = db.execute("SELECT id, nombre_equipo FROM equipos").fetchall()
+    equipos = repo.list_equipos()
     return render_template('formulario_mantenimiento.html', equipos=equipos, fecha_preliminar=fecha_predefinida)
 
 @app.route('/mantenimientos/reprogramar/<mant_id>', methods=['POST'])
@@ -554,18 +543,35 @@ def reprogramar_mantenimiento(mant_id):
         WHERE m.id = ?
     """, (mant_id,)).fetchone()
     
-    if datos and datos['email']:
-        send_email(
-            to=datos['email'],
-            subject="📅 Cambio en Mantenimiento",
-            template='email_mantenimiento_cambio.html',
-            usuario=datos['username'], 
-            equipo=datos['nombre_equipo'], 
-            tarea=datos['titulo'], 
-            nueva_fecha=nueva_fecha,
-            motivo=motivo
-        )
-        flash('Reprogramado y notificado.', 'success')
+    nova_fecha = request.form['nueva_fecha']
+    motivo = request.form['motivo']
+    
+    repo.update_maintenance(mant_id, {'fecha_programada': nova_fecha, 'motivo_reprogramacion': motivo})
+    
+    # Notificar
+    mantenimientos = repo.list_mantenimientos()
+    datos = next((m for m in mantenimientos if str(m['id']) == str(mant_id)), None)
+    
+    if datos:
+        equipo = repo.get_equipment_by_id(UUID(datos['equipo_id']))
+        if equipo and equipo.usuario_asignado_id:
+            user = repo.get_user_by_id(equipo.usuario_asignado_id)
+            if user and user.email:
+                send_email(
+                    to=user.email,
+                    subject="📅 Cambio en Mantenimiento",
+                    template='email_mantenimiento_cambio.html',
+                    usuario=user.username, 
+                    equipo=equipo.nombre_equipo, 
+                    tarea=datos['titulo'], 
+                    nueva_fecha=nova_fecha,
+                    motivo=motivo
+                )
+                flash('Reprogramado y notificado.', 'success')
+            else:
+                flash('Reprogramado.', 'success')
+        else:
+            flash('Reprogramado.', 'success')
     else:
         flash('Reprogramado.', 'success')
         
@@ -579,19 +585,29 @@ def mover_mantenimiento():
     nueva_fecha = data.get('nueva_fecha')
     motivo = data.get('motivo')
     
-    db = get_db()
-    db.execute("UPDATE mantenimientos SET fecha_programada = ?, motivo_reprogramacion = ? WHERE id = ?", 
-               (nueva_fecha, motivo, mant_id))
-    db.commit()
+    repo.update_maintenance(mant_id, {'fecha_programada': nueva_fecha, 'motivo_reprogramacion': motivo})
     
-    # Notificar usando send_email (sin flash porque es API)
-    datos = db.execute("""
-        SELECT u.email, u.username, e.nombre_equipo, m.titulo 
-        FROM mantenimientos m
-        JOIN equipos e ON m.equipo_id = e.id
-        JOIN usuarios u ON e.usuario_asignado_id = u.id
-        WHERE m.id = ?
-    """, (str(mant_id),)).fetchone()
+    # Notificar usando send_email
+    mantenimientos = repo.list_mantenimientos()
+    datos = next((m for m in mantenimientos if str(m['id']) == str(mant_id)), None)
+    
+    if datos:
+        equipo = repo.get_equipment_by_id(UUID(datos['equipo_id']))
+        if equipo and equipo.usuario_asignado_id:
+            user = repo.get_user_by_id(equipo.usuario_asignado_id)
+            if user and user.email:
+                send_email(
+                    to=user.email,
+                    subject="📅 Cambio en Mantenimiento",
+                    template='email_mantenimiento_cambio.html',
+                    usuario=user.username, 
+                    equipo=equipo.nombre_equipo, 
+                    tarea=datos['titulo'], 
+                    nueva_fecha=nueva_fecha,
+                    motivo=motivo
+                )
+    
+    return jsonify({'status': 'success'})
     
     if datos and datos['email']:
         send_email(
@@ -614,33 +630,37 @@ def completar_mantenimiento(mant_id):
     
     comentarios = request.form.get('comentarios', '')
     
-    db = get_db()
-    db.execute("UPDATE mantenimientos SET estado = 'Realizado', tecnico_asignado_id = ?, comentarios = ? WHERE id = ?", 
-               (session['user_id'], comentarios, str(mant_id)))
-    db.commit()
+    repo.update_maintenance(mant_id, {
+        'estado': 'Realizado', 
+        'tecnico_asignado_id': str(session['user_id']), 
+        'comentarios': comentarios
+    })
     
     # Notificar al dueño del equipo
-    datos = db.execute("""
-        SELECT u.email, u.username, e.nombre_equipo, m.titulo, t.username as tecnico
-        FROM mantenimientos m
-        JOIN equipos e ON m.equipo_id = e.id
-        JOIN usuarios u ON e.usuario_asignado_id = u.id
-        JOIN usuarios t ON t.id = ?
-        WHERE m.id = ?
-    """, (session['user_id'], str(mant_id))).fetchone()
+    mantenimientos = repo.list_mantenimientos()
+    datos = next((m for m in mantenimientos if str(m['id']) == str(mant_id)), None)
     
-    if datos and datos['email']:
-        send_email(
-            to=datos['email'],
-            subject="✅ Mantenimiento Finalizado",
-            template='email_mantenimiento_completado.html',
-            usuario=datos['username'], 
-            equipo=datos['nombre_equipo'], 
-            tarea=datos['titulo'], 
-            tecnico=datos['tecnico'],
-            comentarios=comentarios
-        )
-        flash('Tarea completada y usuario notificado.', 'success')
+    if datos:
+        equipo = repo.get_equipment_by_id(UUID(datos['equipo_id']))
+        if equipo and equipo.usuario_asignado_id:
+            user = repo.get_user_by_id(equipo.usuario_asignado_id)
+            tecnico = repo.get_user_by_id(UUID(str(session['user_id'])))
+            if user and user.email:
+                send_email(
+                    to=user.email,
+                    subject="✅ Mantenimiento Finalizado",
+                    template='email_mantenimiento_completado.html',
+                    usuario=user.username, 
+                    equipo=equipo.nombre_equipo, 
+                    tarea=datos['titulo'], 
+                    tecnico=tecnico.username if tecnico else "Técnico",
+                    comentarios=comentarios
+                )
+                flash('Tarea completada y usuario notificado.', 'success')
+            else:
+                flash('Tarea completada.', 'success')
+        else:
+            flash('Tarea completada.', 'success')
     else:
         flash('Tarea completada.', 'success')
         
@@ -649,27 +669,27 @@ def completar_mantenimiento(mant_id):
 @app.route('/mantenimientos/eliminar/<mant_id>', methods=['POST'])
 @admin_required
 def eliminar_mantenimiento(mant_id):
-    get_db().execute("DELETE FROM mantenimientos WHERE id = ?", (str(mant_id),))
-    get_db().commit()
+    repo.delete_maintenance(mant_id)
     return redirect(url_for('lista_mantenimientos'))
 
 # --- CONFIGURACIÓN ---
 @app.route('/admin/configuracion/email', methods=['GET', 'POST'])
 @admin_required
 def admin_config_email():
-    db = get_db()
     if request.method == 'POST':
         campos = ['MAIL_SERVER', 'MAIL_PORT', 'MAIL_USE_TLS', 'MAIL_USERNAME', 'MAIL_PASSWORD']
+        config_to_save = {}
         for campo in campos:
             valor = request.form.get(campo)
-            if valor: valor = valor.strip() # Limpieza obligatoria
+            if valor: valor = valor.strip()
             if campo == 'MAIL_USE_TLS': valor = 'True' if valor else 'False'
-            db.execute("INSERT OR REPLACE INTO configuracion (clave, valor) VALUES (?, ?)", (campo, valor))
-        db.commit()
+            config_to_save[campo] = valor
+        
+        repo.save_config(config_to_save)
         flash('⚙️ Configuración guardada.', 'success')
         return redirect(url_for('admin_config_email'))
-    rows = db.execute("SELECT clave, valor FROM configuracion WHERE clave LIKE 'MAIL_%'").fetchall()
-    config_actual = {row['clave']: row['valor'] for row in rows}
+        
+    config_actual = repo.get_config_by_prefix('MAIL_')
     return render_template('admin_config_email.html', config=config_actual)
 
 @app.route('/admin/usuarios')
@@ -733,6 +753,9 @@ def admin_eliminar_usuario(user_id):
     except Exception as e:
         flash(f'Error al eliminar: {str(e)}', 'danger')
     return redirect(url_for('admin_usuarios'))
+
+
+
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
